@@ -14,17 +14,18 @@ import net.tiny.ws.client.SimpleClient;
 
 public class LauncherTest {
 
-//    @BeforeAll
-//    public static void beforeAll() throws Exception {
-//    	LogManager.getLogManager()
-//        	.readConfiguration(Thread.currentThread().getContextClassLoader().getResourceAsStream("logging.properties"));
-//    }
+    @BeforeAll
+    public static void beforeAll() throws Exception {
+        LogManager.getLogManager()
+            .readConfiguration(Thread.currentThread().getContextClassLoader().getResourceAsStream("logging.properties"));
+    }
 
     @Test
     public void testStartStop() throws Exception {
         Launcher launcher = new Launcher();
         EmbeddedServer.Builder builder = launcher.getBuilder();
         assertNotNull(builder);
+        builder.random(); //
         assertFalse(launcher.isStarting());
 
         AccessLogger logger = new AccessLogger();
@@ -37,7 +38,7 @@ public class LauncherTest {
                 .filters(Arrays.asList(logger, snap));
 
         builder = builder.handlers(Arrays.asList(controller, health));
-
+        int port = builder.port;
         Thread task = new Thread(launcher);
         task.start();
         Thread.sleep(2000L);
@@ -48,7 +49,7 @@ public class LauncherTest {
                 .keepAlive(true)
                 .build();
 
-        byte[] contents = client.doGet(new URL("http://localhost:8080/v1/ctl/status"), callback -> {
+        byte[] contents = client.doGet(new URL("http://localhost:" + port + "/v1/ctl/status"), callback -> {
             if(callback.success()) {
                 assertEquals(client.getStatus(), HttpURLConnection.HTTP_OK);
 
@@ -59,7 +60,7 @@ public class LauncherTest {
         });
         assertEquals("running", new String(contents));
 
-        client.doGet(new URL("http://localhost:8080/health"), callback -> {
+        client.doGet(new URL("http://localhost:" + port + "/health"), callback -> {
             if(callback.success()) {
                 assertEquals(client.getStatus(), HttpURLConnection.HTTP_OK);
             } else {
@@ -68,7 +69,7 @@ public class LauncherTest {
             }
         });
 
-        contents = client.doGet(new URL("http://localhost:8080/v1/ctl/stop"), callback -> {
+        contents = client.doGet(new URL("http://localhost:" + port + "/v1/ctl/stop"), callback -> {
             if(callback.success()) {
                 assertEquals(client.getStatus(), HttpURLConnection.HTTP_OK);
             } else {

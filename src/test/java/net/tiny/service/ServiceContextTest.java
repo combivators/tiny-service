@@ -17,6 +17,10 @@ import org.junit.jupiter.api.Test;
 
 import net.tiny.boot.ApplicationContext;
 import net.tiny.boot.Main;
+import net.tiny.service.ServiceContext;
+import net.tiny.service.ClassFinder;
+import net.tiny.service.ClassHelper;
+import net.tiny.service.Patterns;
 import net.tiny.ws.Launcher;
 
 
@@ -24,14 +28,8 @@ public class ServiceContextTest {
 
     @BeforeAll
     public static void beforeAll() throws Exception {
-    LogManager.getLogManager()
-        .readConfiguration(Thread.currentThread().getContextClassLoader().getResourceAsStream("logging.properties"));
-    //Comment out SLF4JBridgeHandler to show exception trace when tomcat start failed
-    //Bridge the output of java.util.logging.Logger
-//    org.slf4j.bridge.SLF4JBridgeHandler.removeHandlersForRootLogger();
-//    org.slf4j.bridge.SLF4JBridgeHandler.install();
-//    LOGGER.log(Level.INFO, String.format("[REST] %s() SLF4J Bridge the output of JUL",
-//            Bootstrap.class.getSimpleName()));
+        LogManager.getLogManager()
+            .readConfiguration(Thread.currentThread().getContextClassLoader().getResourceAsStream("logging.properties"));
     }
 
     @Test
@@ -95,13 +93,14 @@ public class ServiceContextTest {
 
         System.out.println("ApplicationContext: " + context.toString());
 
-        ServiceContext locator = ServiceLocator.getInstance();
-        System.out.println("ServiceContext: " + locator.toString());
+        ServiceContext serviceContext = context.getBean("service", ServiceContext.class);
+        assertNotNull(serviceContext);
+        assertNotNull(serviceContext.lookup("launcher", Launcher.class));
 
         Launcher launcher = context.getBootBean(Launcher.class);
         assertNotNull(launcher);
-        launcher = locator.lookup("launcher", Launcher.class);
-        assertNotNull(launcher);
+
+
         Thread.sleep(1000L);
         assertTrue(launcher.isStarting());
 

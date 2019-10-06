@@ -27,9 +27,11 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.TrustManagerFactory;
+import javax.xml.ws.Endpoint;
 
 import com.sun.net.httpserver.Filter;
 import com.sun.net.httpserver.HttpContext;
+import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.HttpsConfigurator;
 import com.sun.net.httpserver.HttpsParameters;
@@ -140,9 +142,21 @@ public class EmbeddedServer implements Controllable, Closeable {
     }
 
     private void handle(WebServiceHandler handler) {
-        HttpContext serverContext = httpServer.createContext(handler.path());
-        serverContext.setHandler(handler);
-        LOGGER.fine(String.format("[%s:%d] bind a handler on '%s'", mark, builder.port, handler.path()));
+        final String contextPath = handler.path();
+        final HttpContext serverContext = httpServer.createContext(contextPath);
+
+        if (handler.isEndpoint()) {
+            //Setup a endpoint
+            Endpoint endpoint = handler.getBinding(Endpoint.class);
+            endpoint.setExecutor(executor);
+            endpoint.publish(serverContext);
+            if (LOGGER.isLoggable(Level.FINE))
+                LOGGER.fine(String.format("[%s:%d] publish a endpoint on '%s'", mark, builder.port, contextPath));
+        } else {
+            serverContext.setHandler(handler.getBinding(HttpHandler.class));
+            if (LOGGER.isLoggable(Level.FINE))
+                LOGGER.fine(String.format("[%s:%d] bind a handler on '%s'", mark, builder.port, contextPath));
+        }
 
         //Set filter of handler
         if (handler.hasFilters()) {
@@ -284,11 +298,11 @@ public class EmbeddedServer implements Controllable, Closeable {
     }
 
     public void awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
-    	serverLock.await(timeout, unit);
+        serverLock.await(timeout, unit);
     }
 
     public void awaitTermination() throws InterruptedException {
-    	serverLock.await();
+        serverLock.await();
     }
 
     public static boolean available(int port) {
@@ -320,12 +334,6 @@ public class EmbeddedServer implements Controllable, Closeable {
         }
         return false;
     }
-
-//    public static int randomPort() {
-//
-//    }
-
-
 
     public static class SSL {
         String file;

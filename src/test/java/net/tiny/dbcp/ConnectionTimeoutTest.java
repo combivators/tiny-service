@@ -2,6 +2,7 @@ package net.tiny.dbcp;
 
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.PrintStream;
 import java.sql.Connection;
@@ -33,10 +34,12 @@ public class ConnectionTimeoutTest {
         }
     }
 
-    DataSource dataSource = mysql();
 
+
+    //@Test
     @Disabled
     public void testTimeout() throws SQLException, InterruptedException {
+        DataSource dataSource = mysql();
         Connection con = dataSource.getConnection();
 
         Statement statment = con.createStatement();
@@ -71,7 +74,7 @@ public class ConnectionTimeoutTest {
         SimpleDataSource ds = new SimpleDataSource();
         ds.getBuilder()
             .driver("com.mysql.jdbc.Driver")
-            .url("jdbc:mysql://devmysql001.pf.com:3306/box_common?useSSL=false")
+            .url("jdbc:mysql://devmysql001.com:3306/box_common?useSSL=false")
             .username("dev")
             .password("pcpfadmin")
             .properties("queryTimeoutKillsConnection=true;connectTimeout=20000;socketTimeout=600000");

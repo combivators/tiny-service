@@ -1,8 +1,6 @@
 package net.tiny.dbcp;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -16,7 +14,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Database validationQuery notes
- *
+ * Validation Query sql:
  * hsqldb - select 1 from INFORMATION_SCHEMA.SYSTEM_USERS
  * Oracle - select 1 from dual
  * DB2 - select 1 from sysibm.sysdummy1
@@ -198,7 +196,6 @@ public class ConnectionTest {
 
         Connection conn = ds.getConnection();
         assertNotNull(conn);
-
         System.out.println(ds.toString());
 
         Statement stmt = conn.createStatement();

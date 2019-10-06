@@ -32,6 +32,7 @@ public class ClassHelper {
     public static List<Class<?>> getInterfaces(Class<?> classType) {
         return getInterfaces(classType, false, false, false);
     }
+
     public static List<Class<?>> getInterfaces(Class<?> classType,
             boolean inner,
             boolean constants,
@@ -54,7 +55,8 @@ public class ClassHelper {
             if (!list.contains(c)) {
                 //TODO inner constants
                 //Skip Serializable class
-                if (!(!serializable && Serializable.class.equals(c))) {
+                boolean vaild = !(!serializable && Serializable.class.equals(c));
+                if (vaild) {
                     list.add(c);
                 }
             }
@@ -90,7 +92,7 @@ public class ClassHelper {
     public static List<Field> findAnnotatedFields(Collection<Class<?>> classTypes, Class<? extends Annotation> annotation) {
         List<Field> fields = new ArrayList<>();
         for (Class<?> type : classTypes) {
-        	fields.addAll(findAnnotatedFields(type, annotation));
+            fields.addAll(findAnnotatedFields(type, annotation));
         }
         return fields;
     }
