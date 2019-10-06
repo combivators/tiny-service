@@ -6,9 +6,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.logging.LogManager;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import net.tiny.config.JsonParser;
@@ -17,11 +18,14 @@ import net.tiny.ws.client.SimpleClient;
 
 public class SecureHttpHandlerTest {
 
-    final int port = 8080;
-    EmbeddedServer server;
+    static int port;
+    static EmbeddedServer server;
 
-    @BeforeEach
-    public void setUp() throws Exception {
+    @BeforeAll
+    public static void setUp() throws Exception {
+        LogManager.getLogManager()
+            .readConfiguration(Thread.currentThread().getContextClassLoader().getResourceAsStream("logging.properties"));
+
         AccessLogger logger = new AccessLogger();
         ParameterFilter parameter = new ParameterFilter();
         SnapFilter snap = new SnapFilter();
@@ -31,13 +35,14 @@ public class SecureHttpHandlerTest {
         final SecureHttpHandler secure = new SecureHttpHandler();
         secure.setServerRepository(repository);
         final WebServiceHandler handler = secure
-        		.path("/secure")
-        		.filters(Arrays.asList(parameter, logger, snap));
+                .path("/secure")
+                .filters(Arrays.asList(parameter, logger, snap));
 
         server = new EmbeddedServer.Builder()
-                .port(port)
+                .random()
                 .handlers(Arrays.asList(handler))
                 .build();
+        port = server.port();
         server.listen(callback -> {
             if(callback.success()) {
                 System.out.println("Server listen on port: " + port);
@@ -47,8 +52,8 @@ public class SecureHttpHandlerTest {
         });
     }
 
-    @AfterEach
-    public void tearDown() throws Exception {
+    @AfterAll
+    public static void tearDown() throws Exception {
         server.close();
     }
 
@@ -75,7 +80,7 @@ public class SecureHttpHandlerTest {
         assertNotNull(sessionId);
         String json = new String(client.getContents());
         System.out.println(json);
-        Map<String, Object> map = JsonParser.unmarshal(json, Map.class);
+        Map<?, ?> map = JsonParser.unmarshal(json, Map.class);
         assertTrue(map.containsKey("publicKey"));
         assertTrue(map.containsKey("modulus"));
         assertTrue(map.containsKey("exponent"));

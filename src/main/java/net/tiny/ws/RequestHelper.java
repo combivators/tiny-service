@@ -120,6 +120,14 @@ public final class RequestHelper {
         return getHeaders().getFirst("Content-type");
     }
 
+    public boolean hasMultipart() {
+        return getContentType().startsWith("multipart/form-data");
+    }
+    public String boundary() {
+        final String contentType = getContentType();
+        return contentType.substring(contentType.indexOf("boundary=")+9);
+    }
+
     private Date parseDate(String name) {
         String value = getHeaders().getFirst(name);
         return (null == value) ? null : HttpDateFormat.parse(value);

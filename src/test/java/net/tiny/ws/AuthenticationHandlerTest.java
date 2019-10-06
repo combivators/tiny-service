@@ -18,7 +18,7 @@ import net.tiny.ws.client.SimpleClient;
 
 public class AuthenticationHandlerTest {
 
-    static int port = 8080;
+    static int port;
     static EmbeddedServer server;
 
     @BeforeAll
@@ -38,13 +38,14 @@ public class AuthenticationHandlerTest {
         authentication.setService(service);
         authentication.setServerRepository(repository);
         final WebServiceHandler handler = authentication
-        		.path("/account")
-        		.filters(Arrays.asList(logger, snap));
+                .path("/account")
+                .filters(Arrays.asList(logger, snap));
 
         server = new EmbeddedServer.Builder()
-                .port(port)
+                .random()
                 .handlers(Arrays.asList(handler))
                 .build();
+        port = server.port();
         server.listen(callback -> {
             if(callback.success()) {
                 System.out.println("Server listen on port: " + port);
@@ -52,6 +53,7 @@ public class AuthenticationHandlerTest {
                 callback.cause().printStackTrace();
             }
         });
+
     }
 
     @AfterAll
@@ -60,10 +62,10 @@ public class AuthenticationHandlerTest {
     }
 
     @SuppressWarnings("unchecked")
-	@Test
+    @Test
     public void testBasicLoginLogout() throws Exception {
         final SimpleClient client = new SimpleClient.Builder()
-        		.credentials("admin", "password")
+                .credentials("admin", "password")
                 .keepAlive(true)
                 .build();
 
@@ -106,7 +108,7 @@ public class AuthenticationHandlerTest {
 
 
     @SuppressWarnings("unchecked")
-	@Test
+    @Test
     public void testUrlPathLoginLogout() throws Exception {
         final SimpleClient client = new SimpleClient.Builder()
                 .keepAlive(true)
@@ -150,7 +152,7 @@ public class AuthenticationHandlerTest {
     }
 
     @SuppressWarnings("unchecked")
-	@Test
+    @Test
     public void testQueryLoginLogout() throws Exception {
         final SimpleClient client = new SimpleClient.Builder()
                 .keepAlive(true)
@@ -194,10 +196,10 @@ public class AuthenticationHandlerTest {
     }
 
 
-	@Test
+    @Test
     public void testLoginFailed() throws Exception {
         final SimpleClient client = new SimpleClient.Builder()
-        		.credentials("admin", "badpassword")
+                .credentials("admin", "badpassword")
                 .keepAlive(true)
                 .build();
 
@@ -206,17 +208,17 @@ public class AuthenticationHandlerTest {
             if(callback.fail()) {
                 assertEquals(client.getStatus(), HttpURLConnection.HTTP_UNAUTHORIZED);
             } else {
-            	fail("Should be fail.");
+                fail("Should be fail.");
             }
         });
 
         client.close();
     }
 
-	@Test
+    @Test
     public void testUnknowAccount() throws Exception {
         final SimpleClient client = new SimpleClient.Builder()
-        		.credentials("adminxxx", "password")
+                .credentials("adminxxx", "password")
                 .keepAlive(true)
                 .build();
 
@@ -225,17 +227,17 @@ public class AuthenticationHandlerTest {
             if(callback.fail()) {
                 assertEquals(client.getStatus(), HttpURLConnection.HTTP_UNAUTHORIZED);
             } else {
-            	fail("Unknow Account");
+                fail("Unknow Account");
             }
         });
 
         client.close();
     }
 
-	@Test
+    @Test
     public void testAccountExpired() throws Exception {
         final SimpleClient client = new SimpleClient.Builder()
-        		.credentials("Wayne", "password0")
+                .credentials("Wayne", "password0")
                 .keepAlive(true)
                 .build();
 
@@ -244,17 +246,17 @@ public class AuthenticationHandlerTest {
             if(callback.fail()) {
                 assertEquals(client.getStatus(), HttpURLConnection.HTTP_UNAUTHORIZED);
             } else {
-            	fail("Account Expired.");
+                fail("Account Expired.");
             }
         });
 
         client.close();
     }
 
-	@Test
+    @Test
     public void testAccountLocked() throws Exception {
         final SimpleClient client = new SimpleClient.Builder()
-        		.credentials("Jone", "password")
+                .credentials("Jone", "password")
                 .keepAlive(true)
                 .build();
 
@@ -263,14 +265,14 @@ public class AuthenticationHandlerTest {
             if(callback.fail()) {
                 assertEquals(client.getStatus(), HttpURLConnection.HTTP_UNAUTHORIZED);
             } else {
-            	fail("Account Locked.");
+                fail("Account Locked.");
             }
         });
 
         client.close();
     }
 
-	@Test
+    @Test
     public void testLogoutFailed() throws Exception {
         final SimpleClient client = new SimpleClient.Builder()
                 .build();
@@ -279,26 +281,26 @@ public class AuthenticationHandlerTest {
             if(callback.fail()) {
                 assertEquals(client.getStatus(), HttpURLConnection.HTTP_UNAUTHORIZED);
             } else {
-            	fail("Account not login.");
+                fail("Account not login.");
             }
         });
 
         client.close();
     }
 
-	@Test
+    @Test
     public void testInvalidToken() throws Exception {
         final SimpleClient client = new SimpleClient.Builder()
                 .build();
 
         client.request(new URL("http://localhost:" + port +"/account/logout"))
-        	.header("Cookie", "AT=HFtDaOgmtxSfHub0m/P2pR8UKIxKzWGJLKFIDKAyyFfh6FEsO6D77imu6ymLI0nNbMTxOp5tzQZ6qqsiAXR5vx")
-        	.doGet(callback -> {
-	            if(callback.fail()) {
-	                assertEquals(client.getStatus(), HttpURLConnection.HTTP_FORBIDDEN);
-	            } else {
-	            	fail("Invalid token.");
-	            }
+            .header("Cookie", "AT=HFtDaOgmtxSfHub0m/P2pR8UKIxKzWGJLKFIDKAyyFfh6FEsO6D77imu6ymLI0nNbMTxOp5tzQZ6qqsiAXR5vx")
+            .doGet(callback -> {
+                if(callback.fail()) {
+                    assertEquals(client.getStatus(), HttpURLConnection.HTTP_FORBIDDEN);
+                } else {
+                    fail("Invalid token.");
+                }
         });
 
         client.close();

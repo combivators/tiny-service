@@ -6,9 +6,9 @@ import java.util.regex.Pattern;
 
 import com.sun.net.httpserver.HttpExchange;
 
-public class ControllableHandler extends BaseWebService implements ControllerService {
+import net.tiny.service.ServiceContext;
 
-    private Controllable server;
+public class ControllableHandler extends BaseWebService implements ControllerService {
 
     enum Command {
         status,
@@ -18,8 +18,13 @@ public class ControllableHandler extends BaseWebService implements ControllerSer
         resume
     }
 
+    private Controllable server;
+
+    private ServiceContext serviceContext;
+
+
     public void setControllable(Controllable controller) {
-    	this.server = controller;
+        this.server = controller;
     }
 
     @Override
@@ -29,7 +34,7 @@ public class ControllableHandler extends BaseWebService implements ControllerSer
 
     @Override
     protected void execute(HTTP_METHOD method, HttpExchange he) throws IOException {
-    	RequestHelper request = HttpHandlerHelper.getRequestHelper(he);
+        RequestHelper request = HttpHandlerHelper.getRequestHelper(he);
         String req = request.getParameter(0);
         if (!isVaildRequest(req)) {
             // Not found
@@ -38,14 +43,14 @@ public class ControllableHandler extends BaseWebService implements ControllerSer
             String[] args = req.split("[&]");
 
             try {
-            	String response = query(args);
-            	if( null != response) {
-	                byte[] buffer = response.getBytes();
-	                he.sendResponseHeaders(HttpURLConnection.HTTP_OK, buffer.length);
-	                he.getResponseBody().write(buffer);
-            	} else {
-            		he.sendResponseHeaders(HttpURLConnection.HTTP_NOT_FOUND, -1);
-            	}
+                String response = query(args);
+                if( null != response) {
+                    byte[] buffer = response.getBytes();
+                    he.sendResponseHeaders(HttpURLConnection.HTTP_OK, buffer.length);
+                    he.getResponseBody().write(buffer);
+                } else {
+                    he.sendResponseHeaders(HttpURLConnection.HTTP_NOT_FOUND, -1);
+                }
             } catch (UnsupportedOperationException e) {
                 he.sendResponseHeaders(HttpURLConnection.HTTP_BAD_REQUEST, -1);
             }
@@ -65,7 +70,7 @@ public class ControllableHandler extends BaseWebService implements ControllerSer
 
         String response = null;
         if (null == controller)
-        	return response;
+            return response;
 
         Command command = Command.valueOf(args[0].toLowerCase());
         switch (command) {
@@ -88,5 +93,11 @@ public class ControllableHandler extends BaseWebService implements ControllerSer
             break;
         }
         return response;
+    }
+
+    <T> T lookup(String name, Class<T> type) {
+        if (serviceContext == null)
+            return null;
+        return serviceContext.lookup(name, type);
     }
 }

@@ -15,46 +15,35 @@ import java.util.logging.Logger;
 
 public class ServiceLocator implements Consumer<Callable<Properties>>, ServiceContext {
 
-	protected static final Logger LOGGER = Logger.getLogger(ServiceLocator.class.getName());
+    protected static final Logger LOGGER = Logger.getLogger(ServiceLocator.class.getName());
 
-    private static ServiceContext instance = null;
     protected Container container = new Container();
     private Listener listener = null;
 
 
-	public static ServiceContext getInstance() {
-		if (instance == null) {
-			//Not be called by main process.
-			instance = new ServiceLocator();
-			//TODO
-			Integer pid = instance.getProcessId();
-		}
-		return instance;
-	}
-
     ////////////////////////////////////////
     // Service consumer callback method, will be called by main process.
-	@Override
-	public void accept(Callable<Properties> callable) {
+    @Override
+    public void accept(Callable<Properties> callable) {
         try {
-            Properties services = callable.call();
-            SortedSet<String> names = new TreeSet<>();
+            final Properties services = callable.call();
+            final SortedSet<String> names = new TreeSet<>();
             services.keySet()
-            	.stream()
-            	.forEach(e -> names.add(String.valueOf(e)));
+                .stream()
+                .forEach(e -> names.add(String.valueOf(e)));
+
             for (String name : names) {
-            	bind(name, services.get(name), true);
+                Object bean = services.get(name);
+                bind(name, bean, true);
             }
-            if (instance == null) {
-                LOGGER.info(String.format("[BOOT] Bound %d service(s) on ServiceContext#%d", services.size(), hashCode()));
-            	instance = this;
-            }
+
+            LOGGER.info(String.format("[BOOT] Bound %d service(s) on ServiceContext#%d", services.size(), hashCode()));
         } catch (Exception e) {
-        	LOGGER.log(Level.WARNING, String.format("[BOOT] Service consumer callback error : %s",
-        			e.getMessage()) ,e);
+            LOGGER.log(Level.WARNING, String.format("[BOOT] Service consumer callback error : %s",
+                    e.getMessage()) ,e);
         }
 
-	}
+    }
 
     protected void setProcessId() {
         // Get proccess id from JMX
@@ -88,9 +77,12 @@ public class ServiceLocator implements Consumer<Callable<Properties>>, ServiceCo
 
     @Override
     public <T> T lookup(Class<T> classType) {
+        if (classType.equals(Container.class)) {
+            return classType.cast(container);
+        }
         List<T> list = container.getBeans(classType);
         if(list.isEmpty())
-        	return null;
+            return null;
         return list.get(0);
     }
 
@@ -124,7 +116,7 @@ public class ServiceLocator implements Consumer<Callable<Properties>>, ServiceCo
 
     @Override
     public <T> Collection<T> lookupGroup(Class<T> classType) {
-    	return container.getBeans(classType);
+        return container.getBeans(classType);
     }
 
     @Override
@@ -197,19 +189,6 @@ public class ServiceLocator implements Consumer<Callable<Properties>>, ServiceCo
         System.gc();
     }
 
-    @Override
-    public void refresh() {
-        container.destroy();
-        System.gc();
-//TODO
-//		if(null != resource) {
-//			build(resource);
-//			System.gc();
-//		} else if(null != cache) {
-//			build(new ByteArrayInputStream(cache.getCache()));
-//			System.gc();
-//		}
-    }
 
     @Override
     public String toString() {
@@ -222,53 +201,53 @@ public class ServiceLocator implements Consumer<Callable<Properties>>, ServiceCo
 
 
     public static class ServiceMonitor implements Listener {
-    	@Override
-    	public void invoke(Object inst, Method method, Object param) {
-    		LOGGER.info(" [invoke] - " + inst.getClass().getName() + "."
-    				+ method.getName() + "('" + param + "')");
-    	}
-    	@Override
-    	public void bind(String name) {
-    		LOGGER.info(" [registry] - bind '" + name+ "'");
-    	}
+        @Override
+        public void invoke(Object inst, Method method, Object param) {
+            LOGGER.info(" [invoke] - " + inst.getClass().getName() + "."
+                    + method.getName() + "('" + param + "')");
+        }
+        @Override
+        public void bind(String name) {
+            LOGGER.info(" [bind] - bind '" + name+ "'");
+        }
 
-    	@Override
-    	public void unbind(String name) {
-    		LOGGER.info(" [registry] - unbind '" + name+ "'");
-    	}
+        @Override
+        public void unbind(String name) {
+            LOGGER.info(" [unbind] - unbind '" + name+ "'");
+        }
 
-    	@Override
-    	public void created(String address) {
-    		LOGGER.info(" [registry] - created on '" + address+ "'");
-    	}
+        @Override
+        public void created(String address) {
+            LOGGER.info(" [created] - created on '" + address+ "'");
+        }
 
-    	@Override
-    	public void debug(String msg) {
-    		LOGGER.fine(msg);
-    	}
+        @Override
+        public void debug(String msg) {
+            LOGGER.fine(msg);
+        }
 
-    	@Override
-    	public void info(String msg) {
-    		LOGGER.info(msg);
-    	}
+        @Override
+        public void info(String msg) {
+            LOGGER.info(msg);
+        }
 
-    	@Override
-    	public void warn(String msg, Throwable exception) {
-    		if(null != exception) {
-    			LOGGER.log(Level.WARNING, msg, exception);
-    		} else {
-    			LOGGER.log(Level.WARNING, msg);
-    		}
-    	}
+        @Override
+        public void warn(String msg, Throwable exception) {
+            if(null != exception) {
+                LOGGER.log(Level.WARNING, msg, exception);
+            } else {
+                LOGGER.log(Level.WARNING, msg);
+            }
+        }
 
-    	@Override
-    	public void error(String msg, Throwable exception) {
-    		if(null != exception) {
-    			LOGGER.log(Level.SEVERE, msg, exception);
-    		} else {
-    			LOGGER.log(Level.SEVERE, msg);
-    		}
-    	}
+        @Override
+        public void error(String msg, Throwable exception) {
+            if(null != exception) {
+                LOGGER.log(Level.SEVERE, msg, exception);
+            } else {
+                LOGGER.log(Level.SEVERE, msg);
+            }
+        }
 
     }
 }

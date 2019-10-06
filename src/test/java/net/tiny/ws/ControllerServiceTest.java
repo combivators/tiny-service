@@ -27,7 +27,7 @@ public class ControllerServiceTest {
 
     @Test
     public void testController() throws Exception {
-        final int port = 8080;
+        int port;
         AccessLogger logger = new AccessLogger();
         SnapFilter snap = new SnapFilter();
 
@@ -40,9 +40,10 @@ public class ControllerServiceTest {
                 .filter(logger);
 
         EmbeddedServer server = new EmbeddedServer.Builder()
-                .port(port)
+                .random()
                 .handlers(Arrays.asList(controller, health))
                 .build();
+        port = server.port();
         server.listen(callback -> {
             if(callback.success()) {
                 System.out.println("Server listen on port: " + port);
@@ -52,15 +53,15 @@ public class ControllerServiceTest {
         });
 
         SimpleClient client = new SimpleClient.Builder()
-        		.build();
+                .build();
 
         client.doGet(new URL("http://localhost:" +port + "/v1/ctl/status"), callback -> {
             if(callback.success()) {
-            	assertEquals(client.getStatus(), HttpURLConnection.HTTP_OK);
-            	assertEquals("running", new String(client.getContents()));
+                assertEquals(client.getStatus(), HttpURLConnection.HTTP_OK);
+                assertEquals("running", new String(client.getContents()));
             } else {
-            	Throwable err = callback.cause();
-            	fail(err.getMessage());
+                Throwable err = callback.cause();
+                fail(err.getMessage());
             }
         });
 

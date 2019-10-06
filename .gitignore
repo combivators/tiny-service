@@ -3,7 +3,7 @@
 
 ### STS ###
 .apt_generated
-.apt_generated_tests
+.apt_generated_tested
 .classpath
 .factorypath
 .project
@@ -24,3 +24,8 @@
 /dist/
 /nbdist/
 /.nb-gradle/
+
+### UnitTest ###
+derby
+*.db
+*.log

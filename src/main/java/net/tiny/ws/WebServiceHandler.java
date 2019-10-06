@@ -4,9 +4,8 @@ import java.util.List;
 
 import com.sun.net.httpserver.Authenticator;
 import com.sun.net.httpserver.Filter;
-import com.sun.net.httpserver.HttpHandler;
 
-public interface WebServiceHandler extends HttpHandler, Constants {
+public interface WebServiceHandler  {
     String path();
     WebServiceHandler path(String path);
 
@@ -19,6 +18,7 @@ public interface WebServiceHandler extends HttpHandler, Constants {
     Authenticator getAuth();
     WebServiceHandler auth(Authenticator auth);
 
-    <T> T lookup(Class<T> type);
-    <T> T lookup(String name, Class<T> type);
+    // javax.xml.ws.Endpoint
+    boolean isEndpoint();
+    <T>T getBinding(Class<T> classType);
 }
