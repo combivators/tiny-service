@@ -3,11 +3,11 @@ package net.tiny.ws.cache;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
+import java.net.URL;
 
 public class ContentsCache {
 
-    private final BarakbCache<URI, byte[]> cache;
+    private final BarakbCache<URL, byte[]> cache;
 
     /**
      * Create cache for the last capacity number used file.
@@ -24,9 +24,9 @@ public class ContentsCache {
         cache.clear();
     }
 
-    public byte[] get(URI res) throws IOException {
+    public byte[] get(URL url) throws IOException {
         try {
-            return cache.get(res);
+            return cache.get(url);
         } catch (Throwable e) {
             Throwable cause = findErrorCause(e);
             if(cause instanceof IOException) {
@@ -53,18 +53,18 @@ public class ContentsCache {
         }
     }
 
-    private byte[] readContents(URI res) {
+    private byte[] readContents(URL url) {
         try {
-            return readAllBytes(res);
+            return readAllBytes(url);
         } catch (IOException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
     }
 
 
-    private byte[] readAllBytes(URI uri) throws IOException {
+    public static byte[] readAllBytes(URL url) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        InputStream in = uri.toURL().openStream();
+        InputStream in = url.openStream();
         byte[] buffer = new byte[4096];
         int nread;
         while ((nread = in.read(buffer)) > 0) {
@@ -74,4 +74,5 @@ public class ContentsCache {
         in.close();
         return baos.toByteArray();
     }
+
 }

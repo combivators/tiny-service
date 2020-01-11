@@ -3,15 +3,16 @@ package net.tiny.dbcp;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
+import net.tiny.unit.db.Database;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
 @Database(
-    report = true,
-    startScripts = {"create table bookmark (markid INTEGER,logid INTEGER,siteid INTEGER,userid INTEGER,marktype INTEGER,createTime DATE,markorder INTEGER);"},
-    stopScripts = {"drop table bookmark;"})
+    before = {"create table bookmark (markid INTEGER,logid INTEGER,siteid INTEGER,userid INTEGER,marktype INTEGER,createTime DATE,markorder INTEGER);"},
+    after = {"drop table bookmark;"})
 public class ThreadLocalConnectionTest {
 
     static SimpleDataSource h2database() {

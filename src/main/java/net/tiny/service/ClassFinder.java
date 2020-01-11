@@ -33,8 +33,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import net.tiny.service.beans.BeansXml;
-
 public class ClassFinder {
 
     private static Logger LOGGER = Logger.getLogger(ClassFinder.class.getName());
@@ -43,6 +41,10 @@ public class ClassFinder {
         boolean isTarget(Class<?> classType);
         boolean isTarget(String className);
     }
+
+	public static enum DiscoveryMode {
+		none, annotated, all;
+	}
 
     public static final boolean OSX = "Mac OS X".equals(System.getProperty("os.name"));
     public static final boolean WINDOWS = System.getProperty("os.name").toLowerCase().contains("win");
@@ -117,43 +119,26 @@ public class ClassFinder {
     public static Filter createClassFilter(Patterns patterns) {
         return new ClassPatternFilter(patterns);
     }
-    public static Collection<URL> getUrls(ClassLoader classLoader) {
-        return getUrls(classLoader, null, true);
+    public static Collection<URL> getUrls() {
+        return getUrls(true, null);
     }
 
-    public static Collection<URL> getUrls(ClassLoader classLoader, ClassLoader excludeParent) {
-        return getUrls(classLoader, excludeParent, true);
+    public static Collection<URL> getUrls(final String exclude) {
+        return getUrls(true, exclude);
     }
 
-    public static Collection<URL> getUrls(ClassLoader classLoader, ClassLoader excludeParent, boolean discovery) {
-        try {
-            UrlSet urlSet = new UrlSet(classLoader);
-            if (excludeParent != null) {
-                urlSet = urlSet.exclude(excludeParent);
-            }
-            if(discovery) {
-                BeansXml.BeanDiscoveryMode mode = findDiscoveryMode(urlSet) ;
-                return getUrls(urlSet, mode);
-            } else {
-                return urlSet.getUrls();
-            }
-        } catch (IOException ex) {
-            throw new RuntimeException(ex.getMessage(), ex);
-        }
+    public static Collection<URL> getUrls(boolean discovery, final String exclude) {
+    	final UrlSet urlSet = getUrlSet(exclude);
+    	if(discovery) {
+    		//BeansXml.BeanDiscoveryMode mode = findDiscoveryMode(urlSet); //TODO
+    		DiscoveryMode mode = DiscoveryMode.annotated;
+    		return getUrls(urlSet, mode);
+    	} else {
+    		return urlSet.getUrls();
+    	}
     }
 
-    private static UrlSet getUrlSet(ClassLoader classLoader, ClassLoader excludeParent) {
-        try {
-            UrlSet urlSet = new UrlSet(classLoader);
-            if (excludeParent != null) {
-                urlSet = urlSet.exclude(excludeParent);
-            }
-            return urlSet;
-        } catch (IOException ex) {
-            throw new RuntimeException(ex.getMessage(), ex);
-        }
-    }
-
+/*
     private static BeansXml fetchBeansXml(UrlSet urlSet) {
         BeansXml.BeanDiscoveryMode mode = BeansXml.BeanDiscoveryMode.none;
         BeansXml xml = null;;
@@ -183,11 +168,11 @@ public class ClassFinder {
         }
         return mode;
     }
-
-    private static Collection<URL> getUrls(UrlSet urlSet, BeansXml.BeanDiscoveryMode discoveryMode) {
+*/
+    private static Collection<URL> getUrls(UrlSet urlSet, DiscoveryMode mode) {
         LinkedHashSet<URL> paths = new LinkedHashSet<>();
         Set<URL> jars;
-        switch(discoveryMode) {
+        switch(mode) {
         case none:
             break;
         case annotated:
@@ -195,13 +180,14 @@ public class ClassFinder {
             jars = urlSet.getJars();
             for(URL url : jars) {
                 try {
-                    String resource = url.toString() + BeansXml.BEANS_XML;
-                    BeansXml beansXml = BeansXml.valueOf(resource);
-                    if(!beansXml.getBeanDiscoveryMode().equals(BeansXml.BeanDiscoveryMode.none)) {
+                	//TODO
+                    //String resource = url.toString() + BeansXml.BEANS_XML;
+                    //BeansXml beansXml = BeansXml.valueOf(resource);
+                    //if(!beansXml.getBeanDiscoveryMode().equals(BeansXml.BeanDiscoveryMode.none)) {
                         paths.add(url);
-                    }
-                    LOGGER.log(loggingLevel, String.format("[ClassFinder] - Found '%1$s' discovery mode '%2$s'",
-                            resource, beansXml.getBeanDiscoveryMode()));
+                    //}
+                    //LOGGER.log(loggingLevel, String.format("[ClassFinder] - Found '%1$s' discovery mode '%2$s'",
+                    //        resource, beansXml.getBeanDiscoveryMode()));
                 } catch (Exception ex) {
                     // Not found ignore
                 }
@@ -214,11 +200,20 @@ public class ClassFinder {
         return paths;
     }
 
+    private static UrlSet getUrlSet(final String pattern) {
+    	UrlSet urlSet = new UrlSet();
+    	if (pattern != null) {
+    		urlSet = urlSet.matching(pattern);
+    	}
+    	return urlSet;
+    }
+
     private Patterns excludePatterns =
             new Patterns("java[.].*, javax[.].*, org[.]omg[.].*, org[.]w3c[.]dom[.].*, org[.]eclipse[.]jdt[.].*, .*[.]package-info$");
 
-    private BeansXml.BeanDiscoveryMode discoveryMode = BeansXml.BeanDiscoveryMode.all;
-    private BeansXml beansXml = null;
+    private DiscoveryMode discoveryMode = DiscoveryMode.all;
+    //private BeansXml.BeanDiscoveryMode discoveryMode = BeansXml.BeanDiscoveryMode.all;
+    //private BeansXml beansXml = null;
     private ClassLoader classLoader;
     private Filter filter = null;
     private Collection<URL> targetUrls = null;
@@ -228,33 +223,18 @@ public class ClassFinder {
     protected final Map<Class<?>, List<Class<?>>> annotated = new HashMap<>();
 
     /**
-     * Creates a ClassFinder that will search the urls in the specified
-     * classloader excluding the urls in the 'exclude' classloader.
+     * Creates a ClassFinder that will search the urls from the default classpath
+     * excluding the urls in the 'exclude' patterns.
      *
-     * @param classLoader
-     *            source of classes to scan
      * @param exclude
      *            source of classes to exclude from scanning
      * @param filter
      *            filter of class pattern to include or exclude from scanning
      */
-    public ClassFinder(ClassLoader classLoader, ClassLoader exclude, Filter filter) {
-        this(classLoader, getUrlSet(classLoader, exclude), filter);
+    public ClassFinder(String exclude, Filter filter) {
+    	this(Thread.currentThread().getContextClassLoader(), getUrlSet(exclude), filter);
     }
 
-    /**
-     * Creates a ClassFinder that will search the urls in the specified
-     * classloader.
-     *
-     * @param classLoader
-     *            source of classes to scan
-     * @param excludeParent
-     *            Allegedly excludes classes from parent classloader, whatever
-     *            that might mean
-     */
-    public ClassFinder(final ClassLoader classLoader, boolean excludeParent, final Filter filter) {
-        this(classLoader, excludeParent ? classLoader.getParent() : null, filter);
-    }
 
     /**
      * Creates a ClassFinder that will search the urls in the specified
@@ -271,32 +251,28 @@ public class ClassFinder {
      * @param classLoader
      *            source of classes to scan
      */
-    public ClassFinder(final ClassLoader classLoader, final Filter filter) {
-        this(classLoader, true, filter);
+    public ClassFinder(final Filter filter) {
+        this(Thread.currentThread().getContextClassLoader(), getUrlSet(null), filter);
     }
 
     public ClassFinder(final ClassLoader classLoader) throws Exception {
-        this(classLoader, true, null);
+        this(classLoader, getUrlSet(null), null);
     }
 
-    public ClassFinder(final Filter filter) throws Exception {
-        this(Thread.currentThread().getContextClassLoader(), true, filter);
+    public ClassFinder(final String patterns)  {
+        this(Thread.currentThread().getContextClassLoader(), getUrlSet(null), createClassFilter(patterns));
     }
 
     public ClassFinder(final Collection<String> packages) {
-        this(Thread.currentThread().getContextClassLoader(), true, new PackageFilter(packages));
+        this(Thread.currentThread().getContextClassLoader(), getUrlSet(null), new PackageFilter(packages));
     }
 
     public ClassFinder(final String... packages) {
-        this(Thread.currentThread().getContextClassLoader(), true, new PackageFilter(packages));
-    }
-
-    public ClassFinder(final ClassLoader classLoader, final URL url, final Filter filter) {
-        this(classLoader, Arrays.asList(url), filter);
+        this(Thread.currentThread().getContextClassLoader(), getUrlSet(null), new PackageFilter(packages));
     }
 
     public ClassFinder() {
-        this(Thread.currentThread().getContextClassLoader(), true, null);
+        this(Thread.currentThread().getContextClassLoader(), getUrlSet(null), null);
     }
 
     public ClassFinder(Class<?>... classes) {
@@ -307,30 +283,41 @@ public class ClassFinder {
         this(filter, Arrays.asList(classes));
     }
 
-    public ClassFinder(final ClassLoader classLoader, final Collection<URL> urls, final Filter filter) {
-        this.classLoader = classLoader;
-        this.filter = filter;
-        this.discoveryMode = BeansXml.BeanDiscoveryMode.annotated;
-        this.targetUrls = urls;
-        load(true);
-    }
+//    public ClassFinder(final ClassLoader classLoader, final URL url, final Filter filter) {
+//        this(classLoader, Arrays.asList(url), filter);
+//    }
+
+//    public ClassFinder(final ClassLoader classLoader, final Collection<URL> urls, final Filter filter) {
+//        this.classLoader = classLoader;
+//        this.filter = filter;
+//        this.discoveryMode = DiscoveryMode.annotated;
+//        this.targetUrls = urls;
+//        load(true);
+//    }
 
     private ClassFinder(final ClassLoader classLoader, final UrlSet urlSet, final Filter filter) {
-        this.classLoader = Thread.currentThread().getContextClassLoader();
+        //this.classLoader = Thread.currentThread().getContextClassLoader();
+    	this.classLoader = classLoader;
         this.filter = filter;
+        /*
         this.beansXml = fetchBeansXml(urlSet);
         if(null != this.beansXml) {
             this.discoveryMode = this.beansXml.getBeanDiscoveryMode();
             this.excludePatterns.getInclude().addAll(this.beansXml.getPatterns());
         }
+        */
         this.targetUrls = getUrls(urlSet, this.discoveryMode);
-        load(true);
+        long st = System.currentTimeMillis();
+        this.targetUrls.stream()
+                .forEach(url -> load(true, url));
+        long eta = System.currentTimeMillis() - st;
+        LOGGER.log(loggingLevel, String.format("[ClassFinder] Load %d url(s) ETA:%dms.", targetUrls.size(), eta));
     }
 
     public ClassFinder(final Filter filter, Collection<Class<?>> classes) {
         this.classLoader = Thread.currentThread().getContextClassLoader();
         this.filter = filter;
-        this.discoveryMode = BeansXml.BeanDiscoveryMode.annotated;
+        this.discoveryMode = DiscoveryMode.annotated;
         for (Class<?> c : classes) {
             try {
                 readClassDef(c);
@@ -341,40 +328,44 @@ public class ClassFinder {
         }
     }
 
-    synchronized void load(boolean force) {
-        List<String> classNames = new ArrayList<String>();
-        for (URL location : this.targetUrls) {
-            if (location.getProtocol().equals("jar")) {
-                try {
-                    List<String> targets = jar(location);
-                    if (!targets.isEmpty()) {
-                        LOGGER.log(loggingLevel, String.format("[ClassFinder] - Found %2$d classe(s) on '%1$s'",
-                                location.toString(), targets.size()));
-                        classNames.addAll(targets);
-                    }
-                } catch (IOException ex) {
-                    LOGGER.warning(String.format("Find jar '%1$s' error: %2$s'", location, ex.getMessage()));
+
+    synchronized void load(boolean force, URL location) {
+    	LOGGER.info(String.format("[ClassFinder] - load '%s'", location.toString())); //TODO
+    	List<String> classNames = new ArrayList<String>();
+        if (location.getProtocol().equals("jar")) {
+            try {
+                List<String> targets = jar(location);
+                if (!targets.isEmpty()) {
+                    LOGGER.log(loggingLevel, String.format("[ClassFinder] - Found %d classe(s) on '%s'",
+                                    targets.size(), location.toString()));
+                    classNames.addAll(targets);
                 }
-            } else if (location.getProtocol().equals("file")) {
-                try {
-                    // See if it's actually a jar
-                    URL jarUrl = new URL("jar", "", location.toExternalForm() + "!/");
-                    JarURLConnection juc = (JarURLConnection) jarUrl.openConnection();
-                    juc.getJarFile();
-                    List<String> targets = jar(jarUrl);
-                    if (!targets.isEmpty()) {
-                        LOGGER.log(loggingLevel, String.format("[ClassFinder] - Found %2$d classe(s) on '%1$s'",
-                                jarUrl.toString(), targets.size()));
-                        classNames.addAll(targets);
-                    }
-                } catch (IOException ex) {
-                    // See if it's local class path
-                    List<String> targets = file(location);
-                    if (!targets.isEmpty()) {
-                        LOGGER.log(loggingLevel, String.format("[ClassFinder] - Found %2$d classe(s) on '%1$s'",
-                                location.toString(), targets.size()));
-                        classNames.addAll(targets);
-                    }
+            } catch (IOException ex) {
+                LOGGER.warning(String.format("[ClassFinder] - Read '%s' error: %s'", location, ex.getMessage()));
+            }
+        } else if (location.getProtocol().equals("file")) {
+            try {
+            	final String external = location.toExternalForm();
+            	//if (!external.contains("tiny") || external.contains("tiny-dic")) {
+            	//	return; //TODO
+            	//}
+                // See if it's actually a jar
+                URL jarUrl = new URL("jar", "", external + "!/");
+                JarURLConnection juc = (JarURLConnection) jarUrl.openConnection();
+                juc.getJarFile();
+                List<String> targets = jar(jarUrl);
+                if (!targets.isEmpty()) {
+                    LOGGER.log(loggingLevel, String.format("[ClassFinder] - Found %d classe(s) on '%s'",
+                                    targets.size(), jarUrl.toString()));
+                    classNames.addAll(targets);
+                }
+            } catch (IOException ex) {
+                // See if it's local class path
+                List<String> targets = file(location);
+                if (!targets.isEmpty()) {
+                    LOGGER.log(loggingLevel, String.format("[ClassFinder] - Found %d classe(s) on '%s'",
+                                    targets.size(), location.toString()));
+                    classNames.addAll(targets);
                 }
             }
         }
@@ -383,6 +374,7 @@ public class ClassFinder {
             readClassDef(className);
         }
     }
+
 
     public Filter getFilter() {
         return this.filter;
@@ -840,20 +832,5 @@ public class ClassFinder {
         }
     }
 
-    /*
-    public static List<Field> findDeclaredFields(Class<?> targetClass) {
-        List<Class<?>> targetClasses = getSuperClasses(targetClass);
-        List<Field> fields = new Vector<>();
-        for (Field field : targetClass.getDeclaredFields()) {
-            fields.add(field);
-        }
-        for(Class<?> type : targetClasses) {
-            for (Field field : type.getDeclaredFields()) {
-                fields.add(field);
-            }
-        }
-        return fields;
-    }
-    */
 
 }

@@ -46,8 +46,9 @@ import com.sun.net.httpserver.HttpPrincipal;
 // https://stackoverflow.com/questions/43822262/get-post-data-from-httpexchange
 public final class RequestHelper {
 
-    private static final String REGEX_REFERER_REQUEST = "(\\w+://\\w+:\\d+)(/(\\w+/)*)(\\w+.?\\w*)";
-    private static final Pattern REFERER_REQUEST_PATTERN = Pattern.compile(REGEX_REFERER_REQUEST);
+    //private static final Logger LOGGER = Logger.getLogger(RequestHelper.class.getName());
+    //private static final String REGEX_REFERER_REQUEST = "(\\w+://\\w+:\\d+)(/(\\w+/)*)(\\w+.?\\w*)";
+    //private static final Pattern REFERER_REQUEST_PATTERN = Pattern.compile(REGEX_REFERER_REQUEST);
 
     private static final String REGEX_FILE_REQUEST = "/?(\\w+/)*(\\w+.\\w+)$";
     private static final Pattern FILE_REQUEST_PATTERN = Pattern.compile(REGEX_FILE_REQUEST);
@@ -139,13 +140,14 @@ public final class RequestHelper {
 
     public boolean isNotModified(long lastModified) {
         Date date = parseDate("If-Modified-Since");
+
         if(null != date) {
-            return lastModified <= date.getTime();
+            return (lastModified/1000L) <= (date.getTime()/1000L);
         }
 
         date = parseDate("If-Unmodified-Since");
         if(null != date) {
-            return lastModified > date.getTime();
+            return (lastModified/1000L) > (date.getTime()/1000L);
         }
         return false;
     }
@@ -318,23 +320,15 @@ public final class RequestHelper {
     }
 
     private void setURIParameters( String uri ) {
-        if (referer == null) {
-            // easy case no sub item relative path
-            int i = uri.indexOf( requestPath );
-            if (i >= 0) {
-                uriParameters = (uri.length() > requestPath.length()) ? uri.substring( i + requestPath.length() + 1 ) :
-                    uri.substring( i + requestPath.length());
-            } else {
-                uriParameters = "";
-            }
+        // easy case no sub item relative path
+        int i = uri.indexOf( requestPath );
+        if (i >= 0) {
+            uriParameters = (uri.length() > requestPath.length()) ? uri.substring( i + requestPath.length() + 1 ) :
+                uri.substring( i + requestPath.length());
         } else {
-            Matcher m = REFERER_REQUEST_PATTERN.matcher( referer );
-            if (m.matches()) {
-                String tRelPath = m.group(2);
-                uriParameters = uri.substring(tRelPath.length());
-            }
+            uriParameters = "";
         }
-     }
+    }
 
     @Override
     public String toString() {

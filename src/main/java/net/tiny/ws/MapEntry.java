@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import javax.xml.bind.annotation.XmlElement;
-
 public class MapEntry<K, V> {
 
     private List<KeyValue<K, V>> entry = new ArrayList<KeyValue<K, V>>();
@@ -18,7 +16,6 @@ public class MapEntry<K, V> {
         }
     }
 
-    @XmlElement
     public List<KeyValue<K, V>> getEntry() {
         return entry;
     }

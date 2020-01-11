@@ -35,15 +35,15 @@ public class ContentsCacheTest {
 
         // Cache max 3 files
         ContentsCache cache = new ContentsCache(3);
-        assertTrue(cache.get(new File("src/test/resources/cache/file1").toURI()).length > 0);
-        assertTrue(cache.get(new File("src/test/resources/cache/file2").toURI()).length > 0);
-        assertTrue(cache.get(new File("src/test/resources/cache/file3").toURI()).length > 0);
-        assertTrue(cache.get(new File("src/test/resources/cache/file4").toURI()).length > 0);
-        assertTrue(cache.get(new File("src/test/resources/cache/file5").toURI()).length > 0);
+        assertTrue(cache.get(new File("src/test/resources/cache/file1").toURI().toURL()).length > 0);
+        assertTrue(cache.get(new File("src/test/resources/cache/file2").toURI().toURL()).length > 0);
+        assertTrue(cache.get(new File("src/test/resources/cache/file3").toURI().toURL()).length > 0);
+        assertTrue(cache.get(new File("src/test/resources/cache/file4").toURI().toURL()).length > 0);
+        assertTrue(cache.get(new File("src/test/resources/cache/file5").toURI().toURL()).length > 0);
         assertEquals("Cache(3/3)", cache.toString());
 
         try {
-            cache.get(new File("src/test/resources/cache/file6").toURI());
+            cache.get(new File("src/test/resources/cache/file6").toURI().toURL());
         } catch(Exception e) {
             assertTrue(e instanceof IOException);
             assertTrue(e.getMessage().contains("file6"));
@@ -74,15 +74,15 @@ public class ContentsCacheTest {
         ;
         // Cache max 3 files
         ContentsCache cache = new ContentsCache(3);
-        assertTrue(cache.get(loader.getResource("cache/file1").toURI()).length > 0);
-        assertTrue(cache.get(loader.getResource("cache/file2").toURI()).length > 0);
-        assertTrue(cache.get(loader.getResource("cache/file3").toURI()).length > 0);
-        assertTrue(cache.get(loader.getResource("cache/file4").toURI()).length > 0);
-        assertTrue(cache.get(loader.getResource("cache/file5").toURI()).length > 0);
+        assertTrue(cache.get(loader.getResource("cache/file1").toURI().toURL()).length > 0);
+        assertTrue(cache.get(loader.getResource("cache/file2").toURI().toURL()).length > 0);
+        assertTrue(cache.get(loader.getResource("cache/file3").toURI().toURL()).length > 0);
+        assertTrue(cache.get(loader.getResource("cache/file4").toURI().toURL()).length > 0);
+        assertTrue(cache.get(loader.getResource("cache/file5").toURI().toURL()).length > 0);
         assertEquals("Cache(3/3)", cache.toString());
 
         try {
-            cache.get(loader.getResource("cache/file6").toURI());
+            cache.get(loader.getResource("cache/file6").toURI().toURL());
         } catch(Exception e) {
             assertTrue(e instanceof NullPointerException);
         }

@@ -5,11 +5,8 @@ import java.sql.SQLException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import net.tiny.benchmark.Benchmark;
+import net.tiny.unit.db.Database;
 
 @Database
 public class DatabaseBenchmarkTest {
@@ -19,22 +16,7 @@ public class DatabaseBenchmarkTest {
     static final int threadCount = 10;
     static String name;
     static long start;
-/*
-    @BeforeEach
-    public void beforeEach() throws Exception {
 
-        dataSource = h2database();
-        start = System.currentTimeMillis();
-    }
-
-    @AfterEach
-    public void afterEach() throws Exception {
-        long end = System.currentTimeMillis();
-        System.out.println(name + " Takes time " + (end - start) + "ms");
-        dataSource.close();
-        System.gc();
-    }
-*/
     static SimpleDataSource h2database() {
         SimpleDataSource ds = new SimpleDataSource();
         ds.getBuilder()
@@ -47,7 +29,6 @@ public class DatabaseBenchmarkTest {
 
     // 100 ms
     @Benchmark()
-    //@Test
     public void testGetConnectonBench() throws Exception {
         dataSource = h2database();
         total = new AtomicInteger(200 * 1000);

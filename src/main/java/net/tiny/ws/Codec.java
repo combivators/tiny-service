@@ -55,9 +55,9 @@ public class Codec {
         return digit;
     }
 
-    public static String hash(String pass) throws Exception {
-        byte[] passwBytes = pass.getBytes("UTF-8");
-        byte[] digest = MessageDigest.getInstance("SHA-384").digest(passwBytes);
+    public static String hash(String plaint) throws Exception {
+        byte[] bytes = plaint.getBytes("UTF-8");
+        byte[] digest = MessageDigest.getInstance("SHA-384").digest(bytes);
         return encodeHex(digest);
     }
 }

@@ -14,6 +14,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import net.tiny.dbcp.SimpleDataSource;
+import net.tiny.unit.db.Database;
+
 @Database
 public class PerfBenchmarkTest {
 

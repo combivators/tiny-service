@@ -4,12 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
-import javax.jws.WebService;
-import javax.xml.ws.Endpoint;
-
 import com.sun.net.httpserver.Authenticator;
 import com.sun.net.httpserver.Filter;
-import com.sun.net.httpserver.HttpHandler;
 
 public abstract class AbstractWebService implements WebServiceHandler {
 
@@ -71,10 +67,9 @@ public abstract class AbstractWebService implements WebServiceHandler {
     // javax.xml.ws.Endpoint
     @Override
     public boolean isEndpoint() {
-        if (this instanceof HttpHandler) {
-            return false;
-        }
-        return getClass().isAnnotationPresent(WebService.class);
+    	// Default not support JavaEE endpoint service.
+    	// Need other provider package on JDK11
+        return false;
     }
 
     @Override
@@ -82,9 +77,6 @@ public abstract class AbstractWebService implements WebServiceHandler {
         if(classType.isInstance(this)) {
             // Has HttpHandler interface
             return classType.cast(this);
-        } else if (Endpoint.class.equals(classType) && isEndpoint()) {
-            Endpoint endpoint = Endpoint.create(this);
-            return classType.cast(endpoint);
         } else {
             throw new IllegalArgumentException(String.format("Can not cast '%s' interface from %s.",
                     classType.getSimpleName(), getClass().getSimpleName()));

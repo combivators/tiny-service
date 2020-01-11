@@ -2,10 +2,8 @@ package net.tiny.ws;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -53,34 +51,7 @@ public class FileUploadHandlerTest {
         server.awaitTermination();
     }
 
-    @Test
-    public void testSearchBytes() throws Exception {
-        String boundary = "WebKitFormBoundaryKBRUiUWrIpW9wq2j";
-        byte[] boundaryBytes = ("\r\n--" + boundary).getBytes(Charset.forName("UTF-8"));
-        String contents =
-                "\r\n" +
-                "--WebKitFormBoundaryKBRUiUWrIpW9wq2j\r\n" +
-                "Content-Disposition: form-data; name=\"textline\"\r\n" +
-                "Content-type: text/plain;charset=UTF-8\r\n" +
-                "\r\n" +
-                "value of textfield here\r\n" +
-                "--WebKitFormBoundaryKBRUiUWrIpW9wq2j\r\n" +
-                "Content-Disposition: form-data; name=\"datafile\"; filename=\"test.txt\"\r\n" +
-                "Content-type: application/octet-stream\r\n" +
-                "\r\n" +
-                "1234567890\r\n" +
-                "abcdefghijk\r\n" +
-                "--WebKitFormBoundaryKBRUiUWrIpW9wq2j--\r\n" +
-                "";
 
-        List<Integer> offsets = uploader.searchBytes(contents.getBytes(), boundaryBytes, 0, contents.length() -1);
-        int startPart = offsets.get(0);
-        int endPart = contents.length();
-        assertEquals(3, offsets.size());
-        assertEquals(0, startPart);
-        assertEquals(371, endPart);
-
-    }
 
     @Test
     public void testUploadFile() throws Exception {

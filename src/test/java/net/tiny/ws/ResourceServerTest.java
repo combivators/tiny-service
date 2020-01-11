@@ -3,6 +3,7 @@ package net.tiny.ws;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -16,11 +17,18 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.LogManager;
 
 
 public class ResourceServerTest {
 
-    static String BROWSER_AGENT = "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)";
+    @BeforeAll
+    public static void beforeAll() throws Exception {
+        LogManager.getLogManager()
+            .readConfiguration(Thread.currentThread().getContextClassLoader().getResourceAsStream("logging.properties"));
+    }
+
+	static String BROWSER_AGENT = "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)";
     static int port;
     static EmbeddedServer server;
 
@@ -142,7 +150,7 @@ public class ResourceServerTest {
 
         client.doGet(new URL("http://localhost:" + port +"/css/style.css"), callback -> {
             if(callback.success()) {
-                assertEquals(client.getStatus(), HttpURLConnection.HTTP_OK);
+                assertEquals(HttpURLConnection.HTTP_OK, client.getStatus());
                 assertEquals("text/css; charset=utf-8", client.getHeader("Content-Type"));
                 assertTrue(!client.getHeader("Last-modified").isEmpty());
                 assertEquals(420, client.getContents().length);
@@ -159,7 +167,7 @@ public class ResourceServerTest {
             .header("If-Modified-Since", HttpDateFormat.format(lastModified))
             .doGet(callback -> {
                 if(callback.success()) {
-                    assertEquals(client.getStatus(), HttpURLConnection.HTTP_NOT_MODIFIED);
+                    assertEquals(HttpURLConnection.HTTP_NOT_MODIFIED, client.getStatus());
                     assertEquals("Keep-Alive", client.getHeader("Connection"));
                 } else {
                     Throwable err = callback.cause();
