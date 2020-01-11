@@ -34,12 +34,11 @@ public class ConnectionTimeoutTest {
         }
     }
 
+    DataSource dataSource = derby();
 
-
-    //@Test
     @Disabled
+    //@Test
     public void testTimeout() throws SQLException, InterruptedException {
-        DataSource dataSource = mysql();
         Connection con = dataSource.getConnection();
 
         Statement statment = con.createStatement();
@@ -70,14 +69,24 @@ public class ConnectionTimeoutTest {
         }
     }
 
+/*
     static DataSource mysql() {
         SimpleDataSource ds = new SimpleDataSource();
         ds.getBuilder()
             .driver("com.mysql.jdbc.Driver")
-            .url("jdbc:mysql://devmysql001.com:3306/box_common?useSSL=false")
+            .url("jdbc:mysql://devmysql001:3306/box_common?useSSL=false")
             .username("dev")
             .password("pcpfadmin")
             .properties("queryTimeoutKillsConnection=true;connectTimeout=20000;socketTimeout=600000");
+        return ds;
+    }
+*/
+    static DataSource derby() {
+        SimpleDataSource ds = new SimpleDataSource();
+        ds.getBuilder()
+          .driver("org.apache.derby.jdbc.EmbeddedDriver")
+          .url("jdbc:derby:derby")
+          .properties("create=true");
         return ds;
     }
 }

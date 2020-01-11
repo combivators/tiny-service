@@ -10,12 +10,12 @@ public class UniqueTest {
 
     @Test
     public void testUniqueKey() throws Exception {
-        for(int i =0; i<20; i++) {
+        for(int i =0; i<500; i++) {
             String key = Unique.uniqueKey();
             System.out.println(key);
         }
         List<String> list = new ArrayList<String>();
-        for(int i =0; i<2000; i++) {
+        for(int i =0; i<10000; i++) {
             String key = Unique.uniqueKey();
             assertFalse(list.contains(key));
             list.add(key);

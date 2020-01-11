@@ -1,11 +1,8 @@
 package net.tiny.ws;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.HttpURLConnection;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -20,7 +17,7 @@ import java.util.logging.Level;
 
 import com.sun.net.httpserver.HttpExchange;
 
-import net.tiny.ws.cache.ContentsCache;
+import net.tiny.ws.cache.CacheFunction;
 
 /**
  * HTTP (HyperText Transfer Protocol) Handler
@@ -30,7 +27,7 @@ public class ResourceHttpHandler extends BaseWebService {
 
     private final Date lastModified = new Date(System.currentTimeMillis());
     private Map<String, String> resources = null;
-    private ContentsCache contentCache = null;
+    private CacheFunction cache = null;
     private List<String> paths = new ArrayList<>();
     private int cacheSize = -1;
     private long maxAge = 86400L; //1 day
@@ -90,7 +87,7 @@ public class ResourceHttpHandler extends BaseWebService {
                     header.set("Connection", "Keep-Alive");
                     header.set("Keep-Alive", "timeout=10, max=1000");
                     header.set("Cache-Control", "max-age=" + maxAge); //"max-age=0" 86400:1 day
-                    buffer = getCacheableContents(doc.toURI());
+                    buffer = getCacheableContents(doc.toURI().toURL());
                     statCode = HttpURLConnection.HTTP_OK;
                 }
             } catch (IOException e) {
@@ -108,12 +105,12 @@ public class ResourceHttpHandler extends BaseWebService {
         }
     }
 
-    private void sendResource(HttpExchange he, URL res) throws IOException {
+    private void sendResource(HttpExchange he, URL url) throws IOException {
         byte[] buffer;
         final RequestHelper request = HttpHandlerHelper.getRequestHelper(he);
         final ResponseHeaderHelper header = HttpHandlerHelper.getHeaderHelper(he);
         int statCode = HttpURLConnection.HTTP_OK;
-        if (res == null) {
+        if (url == null) {
             header.setContentType(MIME_TYPE.HTML);
             buffer = NOT_FOUND;
             statCode = HttpURLConnection.HTTP_NOT_FOUND;
@@ -125,14 +122,14 @@ public class ResourceHttpHandler extends BaseWebService {
                     header.set("Connection", "Keep-Alive");
                     statCode = HttpURLConnection.HTTP_NOT_MODIFIED;
                 } else {
-                    header.setContentType(res.toString());
+                    header.setContentType(url.toURI().toString());
                     header.set(HEADER_LAST_MODIFIED, HttpDateFormat.format(lastModified));
                     header.set("Server", serverName);
                     header.set("Connection", "Keep-Alive");
                     header.set("Keep-Alive", "timeout=10, max=1000");
                     header.set("Cache-Control", "max-age=" + maxAge); //"max-age=0" 86400:1 day
 
-                    buffer = getCacheableContents(res.toURI());
+                    buffer = getCacheableContents(url);
                     statCode = HttpURLConnection.HTTP_OK;
                 }
             } catch (IOException | URISyntaxException e) {
@@ -150,39 +147,18 @@ public class ResourceHttpHandler extends BaseWebService {
         }
     }
 
-    private byte[] getCacheableContents(URI res) throws IOException {
-        if (cacheSize > 0 && contentCache == null) {
-            // Cache max files
-            contentCache = new ContentsCache(cacheSize);
-        }
-        if (contentCache != null) {
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.fine(String.format("%s : Load '%s' contents from cache.",
-                    getClass().getSimpleName(), res.toString()));
+    private byte[] getCacheableContents(URL url) throws IOException {
+        if (cache == null) {
+            if (cacheSize > 0) {
+                // Cache max files
+                cache = new CacheFunction(cacheSize);
+            } else {
+                cache = new CacheFunction();
             }
-            return contentCache.get(res);
-        } else {
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.fine(String.format("%s : Read contents from '%s'.",
-                    getClass().getSimpleName(), res.toString()));
-            }
-            return readAllBytes(res);
         }
+        return cache.apply(url);
     }
 
-
-    private byte[] readAllBytes(URI uri) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        InputStream in = uri.toURL().openStream();
-        byte[] buffer = new byte[4096];
-        int nread;
-        while ((nread = in.read(buffer)) > 0) {
-            baos.write(buffer, 0, nread);
-        }
-        baos.close();
-        in.close();
-        return baos.toByteArray();
-    }
 
     File findLocalFile(String uri) {
         int pos = uri.indexOf("/", 1);
@@ -190,6 +166,7 @@ public class ResourceHttpHandler extends BaseWebService {
         String path = mapping.get("/");
         if (pos == -1 && path == null) {
             // Not found "/" mapping
+            LOGGER.warning("[WEB] Not found '/' in local resource mapping. See 'handler.resource.paths=/:{local path}' property is right or not.");
             return null;
         }
 
@@ -202,12 +179,21 @@ public class ResourceHttpHandler extends BaseWebService {
                 }
                 //Not found in mapping resources
                 real = Paths.get(path + uri);
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.fine(String.format("[WEB] Try to find '%s' > '%s'", (path + uri), real));
+                }
             } else {
                 real = Paths.get(res + uri.substring(uri.indexOf("/", 1)));
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.fine(String.format("[WEB] Mapping resources : '%s'", real));
+                }
             }
         } else {
             // the resource on home
             real = Paths.get(path + uri);
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.fine(String.format("[WEB] Resource on home : '%s'", real));
+            }
         }
         if (real != null &&
             Files.exists(real) &&
@@ -241,6 +227,9 @@ public class ResourceHttpHandler extends BaseWebService {
         } else {
             // the resource on home
             real = path + uri;
+        }
+        if (real != null && real.endsWith("/")) {
+            real = real.concat("index.html");
         }
         return real != null ? loader.getResource(real) : null;
     }

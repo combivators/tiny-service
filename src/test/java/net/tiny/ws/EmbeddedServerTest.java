@@ -37,7 +37,7 @@ public class EmbeddedServerTest {
     public void testAvailablePort() throws Exception {
         final int port = 8888;
         assertTrue(EmbeddedServer.available(8888));
-        assertTrue(EmbeddedServer.available(80));
+        assertTrue(EmbeddedServer.available(8000));
         assertTrue(EmbeddedServer.available(9999));
         assertThrows(IllegalArgumentException.class, () -> {
             EmbeddedServer.available(79);

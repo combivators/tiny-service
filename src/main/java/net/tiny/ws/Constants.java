@@ -41,6 +41,7 @@ public interface Constants {
         HTM(MIME_TYPE_HTML),
         XML("text/xml; charset=utf-8"),
         CSS("text/css; charset=utf-8"),
+        SCSS("text/css; charset=utf-8"),
         JS("text/javascript; charset=utf-8"),
         TXT("text/plain"),
         CSV("text/csv"),
@@ -52,7 +53,13 @@ public interface Constants {
         TIFF("image/tiff"),
         SVG("image/svg+xml"),
         ICO("image/vnd.microsoft.icon"),
-        DAT("application/octet-stream");
+        DAT("application/octet-stream"),
+        WOFF("application/font-woff"),
+        WOFF2("application/font-woff2"),
+        EOT("application/vnd.ms-fontobject"),
+        TTF("application/x-font-truetype"),
+        OTF("application/x-font-opentype"),
+        MAP("magnus-internal/imagemap");
 
         private final String type;
         MIME_TYPE(String type) {

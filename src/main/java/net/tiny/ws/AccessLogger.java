@@ -26,6 +26,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpPrincipal;
 
 /**
+ * Access log format
  * @see https://qiita.com/ryounagaoka/items/e7782ab29ff9fbe8f891
  *
  */

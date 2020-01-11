@@ -1,8 +1,6 @@
 package net.tiny.service;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.lang.annotation.Annotation;
 import java.util.HashSet;
@@ -18,21 +16,18 @@ public class ClassFinderTest {
     @Test
     public void testOS() throws Exception {
         System.out.println("OSX: " + ClassFinder.OSX);
-        System.out.println("OSX: " + ClassFinder.WINDOWS);
-        System.out.println("OSX: " + ClassFinder.UNIX);
+        System.out.println("WINDOWS: " + ClassFinder.WINDOWS);
+        System.out.println("UNIX: " + ClassFinder.UNIX);
     }
 
     @Test
     public void testFindAllAnnotated() throws Exception {
-        String namePattern = "net.tiny.*, !net.tiny.service.ServiceContext";
-        Patterns patterns = Patterns.valueOf(namePattern);
-        assertFalse(patterns.vaild("net.tiny.service.ServiceContext"));
-
+        String patterns = "net.tiny.*, !net.tiny.service.ServiceContext";
         ClassFinder.setLoggingLevel(Level.INFO);
-        ClassFinder classFinder = new ClassFinder(ClassFinder.createClassFilter(patterns));
+        ClassFinder classFinder = new ClassFinder(patterns);
 
         Set<Class<?>> classes = classFinder.findAll();
-        assertFalse(classes.isEmpty());
+        //assertFalse(classes.isEmpty());
         System.out.println("ClassFinder.findAll(): " + classes.size());
 /*
         List<Class<?>> list = classFinder.findAnnotatedClasses(Singleton.class);
@@ -165,13 +160,15 @@ public class ClassFinderTest {
         Patterns patterns = new Patterns(null, "java[.].*, javax[.].*");
         String className = "javax.ws.rs.core.Cookie";
         assertTrue(patterns.invaild(className));
+        /*
         try {
             Class<?> targetClass = Class.forName(className);
             fail(targetClass.toString());
         } catch (Throwable error) {
             //error.printStackTrace();
-            //assertTrue(error instanceof ExceptionInInitializerError);
+            assertTrue(error instanceof ExceptionInInitializerError);
         }
+        */
     }
 
 /*

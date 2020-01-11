@@ -1,6 +1,5 @@
 package net.tiny.ws.cache;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -65,26 +64,33 @@ public class CacheBenchmarkTest {
         // 容量率
         //final double capacityRate = 1.0;
         // 容量
-        final int capacity = (int) (Math.round(SIZE * (1.0 - duplicationRate) * capacityRate));
+        int capacity = (int) (Math.round(SIZE * (1.0 - duplicationRate) * capacityRate));
 
-        final List<Integer> list = IntStream.rangeClosed(0, SIZE - 1)
+
+        List<Integer> list = IntStream.rangeClosed(0, SIZE - 1)
                 .boxed()
                 .map(it -> (int) ((double) it * (1.0 - duplicationRate)))
                 .collect(Collectors.toList());
-
         final int unique = (int) list.stream()
                 .distinct()
                 .count();
 
-        Function<Integer, Integer> calc = it -> it + IntStream.rangeClosed(1, COST * 10000).sum();
-        Collections.shuffle(list);
+        final Function<Integer, Integer> calc = it -> it + IntStream.rangeClosed(1, COST * 10000).sum();
         System.out.println(String.format("Cost:%d  Size:%d  Unique:%d  Duplication Rate:%.2f  Capacity:%d  Capacity Rate:%.2f",
                 COST, SIZE, unique, duplicationRate, capacity, capacityRate));
+
 
         seri("None Cache", list, new Cache.NonCache<>(calc));
         para("None Cache", list, new Cache.NonCache<>(calc));
         seri("None LRU", list, new Cache.NonLruCache<>(capacity, calc));
+/*
+        list = IntStream.rangeClosed(0, SIZE - 1)
+                .boxed()
+                .map(it -> (int) ((double) it * (1.0 - duplicationRate)))
+                .collect(Collectors.toList());
+        Collections.shuffle(list);
         para("None LRU", list, new Cache.NonLruCache<>(capacity, calc));
+        */
         seri("LRU Cache1", list, new Cache.LruCache1<>(capacity, calc));
         para("LRU Cache1", list, new Cache.LruCache1<>(capacity, calc));
         seri("LRU Cache2", list, new Cache.LruCache2<>(capacity, calc));

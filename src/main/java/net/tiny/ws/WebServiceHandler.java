@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.sun.net.httpserver.Authenticator;
 import com.sun.net.httpserver.Filter;
+import com.sun.net.httpserver.HttpContext;
 
 public interface WebServiceHandler  {
     String path();
@@ -21,4 +22,5 @@ public interface WebServiceHandler  {
     // javax.xml.ws.Endpoint
     boolean isEndpoint();
     <T>T getBinding(Class<T> classType);
+    void publish(HttpContext serverContext);
 }

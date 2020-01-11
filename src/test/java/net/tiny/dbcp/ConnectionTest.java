@@ -2,6 +2,7 @@ package net.tiny.dbcp;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -113,6 +114,11 @@ public class ConnectionTest {
         stmt.close();
         conn.close();
         ds.close();
+
+        File tmp = new File("sample.db");
+        if (tmp.exists()) {
+            tmp.deleteOnExit();
+        }
     }
 
     @Test
@@ -150,7 +156,7 @@ public class ConnectionTest {
         SimpleDataSource ds = new SimpleDataSource();
         ds.getBuilder()
           .driver("com.mysql.jdbc.Driver")
-          .url("jdbc:mysql://devmysql001.pf.com:3306/box_common?useSSL=false")
+          .url("jdbc:mysql://devmysql001:3306/box_common?useSSL=false")
           .username("dev")
           .password("pcpfadmin")
           .properties("queryTimeoutKillsConnection=true;connectTimeout=20000;socketTimeout=600000");

@@ -12,6 +12,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import net.tiny.unit.db.H2Engine;
+
 public class ThreadDieCloseConnectionTest {
 
 

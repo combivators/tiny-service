@@ -27,7 +27,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.TrustManagerFactory;
-import javax.xml.ws.Endpoint;
 
 import com.sun.net.httpserver.Filter;
 import com.sun.net.httpserver.HttpContext;
@@ -52,7 +51,7 @@ public class EmbeddedServer implements Controllable, Closeable {
     private static final int DEFAULT_PORT = 8080;
     private static final long DEFAULT_STOP_TIME = 100L; //Delay 100ms
     private static final int DEFAULT_BACKLOG = 1;
-    private static final int MIN_PORT = 80;
+    private static final int MIN_PORT = 8000;
     private static final int MAX_PORT = 9999;
     private static final int RANDOM_MIN_PORT = 8080;
     private static final int RANDOM_MAX_PORT = 8180;
@@ -141,15 +140,13 @@ public class EmbeddedServer implements Controllable, Closeable {
         LOGGER.info(String.format("[%s:%d] Embedded server listen on %s", mark, builder.port, url));
     }
 
-    private void handle(WebServiceHandler handler) {
+    protected void handle(WebServiceHandler handler) {
         final String contextPath = handler.path();
         final HttpContext serverContext = httpServer.createContext(contextPath);
-
         if (handler.isEndpoint()) {
-            //Setup a endpoint
-            Endpoint endpoint = handler.getBinding(Endpoint.class);
-            endpoint.setExecutor(executor);
-            endpoint.publish(serverContext);
+        	serverContext.getAttributes().put(ExecutorService.class.getName(), executor);
+            //publish a endpoint
+            handler.publish(serverContext);
             if (LOGGER.isLoggable(Level.FINE))
                 LOGGER.fine(String.format("[%s:%d] publish a endpoint on '%s'", mark, builder.port, contextPath));
         } else {

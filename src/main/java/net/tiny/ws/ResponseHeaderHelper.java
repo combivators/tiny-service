@@ -16,7 +16,7 @@ public final class ResponseHeaderHelper implements Constants {
     }
 
     public ResponseHeaderHelper setContentType(String file) {
-    	MIME_TYPE mimeType = HttpHandlerHelper.getMimeType(file);
+        MIME_TYPE mimeType = HttpHandlerHelper.getMimeType(file);
         if (null != mimeType) {
             setContentType(mimeType);
         }

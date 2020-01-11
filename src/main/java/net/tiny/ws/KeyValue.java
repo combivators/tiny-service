@@ -2,11 +2,6 @@ package net.tiny.ws;
 
 import java.util.Map;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-
-@XmlAccessorType(XmlAccessType.PROPERTY)
 public class KeyValue<K, V> {
 
     private K key;
@@ -20,12 +15,10 @@ public class KeyValue<K, V> {
         value = e.getValue();
     }
 
-    @XmlElement
     public K getKey() {
         return key;
     }
 
-    @XmlElement
     public V getValue() {
         return value;
     }

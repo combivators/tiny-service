@@ -7,6 +7,7 @@ import java.net.HttpURLConnection;
 import java.util.logging.Level;
 
 import com.sun.net.httpserver.Headers;
+import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
@@ -59,6 +60,10 @@ public abstract class BaseWebService extends AbstractWebService implements HttpH
         }
     }
 
+    public void publish(HttpContext serverContext) {
+        // Not endpoint do nothing.
+    }
+
     protected boolean doGetOnly() {
         return false;
     }
@@ -71,10 +76,10 @@ public abstract class BaseWebService extends AbstractWebService implements HttpH
         return doGetOnly() ? "GET".equals(method.name()) : getAllowedMethods().contains(method.name());
     }
 
-    protected final String loadResource(String resource) throws IOException {
+    protected final byte[] readResource(String resource) throws IOException {
         InputStream is = getClass().getResourceAsStream(resource);
         if (is == null) {
-            throw new IllegalArgumentException(String.format("Not found '%s'" + resource));
+            throw new IllegalArgumentException(String.format("Not found '%s'", resource));
         }
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         byte[] buffer = new byte[4096];
@@ -84,6 +89,10 @@ public abstract class BaseWebService extends AbstractWebService implements HttpH
         }
         baos.close();
         is.close();
-        return new String(baos.toByteArray());
+        return baos.toByteArray();
+    }
+
+    protected final String loadResource(String resource) throws IOException {
+        return new String(readResource(resource));
     }
 }

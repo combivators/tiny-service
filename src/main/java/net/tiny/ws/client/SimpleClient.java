@@ -127,10 +127,13 @@ public class SimpleClient {
     public byte[] doGet(URL url, Consumer<Callback<SimpleClient>> consumer) throws IOException {
         return new RequestBuilder(this, url).doGet(consumer);
     }
-
     protected void doGet(URL url, Map<String, List<String>> requestHeaders, Consumer<Callback<SimpleClient>> consumer) throws IOException {
+        doGetDelete("GET", url, requestHeaders, consumer);
+    }
+
+    protected void doGetDelete(String method, URL url, Map<String, List<String>> requestHeaders, Consumer<Callback<SimpleClient>> consumer) throws IOException {
         connection = (HttpURLConnection) url.openConnection();
-        connection.setRequestMethod("GET");
+        connection.setRequestMethod(method);
         for (String name : builder.headers.keySet()) {
             connection.setRequestProperty(name, builder.headers.get(name));
         }
@@ -213,6 +216,27 @@ public class SimpleClient {
 
     protected void doPut(URL url, Map<String, List<String>> requestHeaders, byte[] data, Consumer<Callback<SimpleClient>> consumer) throws IOException {
         doSend("PUT", url, requestHeaders, data, consumer);
+    }
+
+    public <T> T doDelete(String url, Class<T> type) throws IOException {
+        byte[] buffer = new RequestBuilder(this, new URL(url)).doDelete();
+        if(null == buffer)
+            return null;
+        if (String.class.equals(type)) {
+            return type.cast(new String(buffer));
+        }
+        return JsonParser.unmarshal(new String(buffer), type);
+    }
+
+    public String doDelete(String url) throws IOException {
+        byte[] buffer = new RequestBuilder(this, new URL(url)).doDelete();
+        if(null == buffer)
+            return null;
+        return new String(buffer);
+    }
+
+    public byte[] doDelete(URL url, Consumer<Callback<SimpleClient>> consumer) throws IOException {
+        return new RequestBuilder(this, url).doDelete(consumer);
     }
 
     void doSend(String method, URL url, Map<String, List<String>> requestHeaders, byte[] data, Consumer<Callback<SimpleClient>> consumer) throws IOException {
@@ -381,6 +405,21 @@ public class SimpleClient {
 
         public byte[] doPut(byte[] data, Consumer<Callback<SimpleClient>> consumer) throws IOException {
             return doSend("PUT", data, consumer);
+        }
+
+        public byte[] doDelete() throws IOException {
+            return doDelete(null);
+        }
+
+        public byte[] doDelete(Consumer<Callback<SimpleClient>> consumer) throws IOException {
+            String url;
+            if (query == null) {
+                url = String.format("%s://%s:%d%s", protocol, host, port, path);
+            } else {
+                url = String.format("%s://%s:%d%s?%s", protocol, host, port, path, query);
+            }
+            client.doGetDelete("DELETE", new URL(url), headers, consumer);
+            return client.getContents(true);
         }
 
         protected byte[] doSend(String method, byte[] data, Consumer<Callback<SimpleClient>> consumer) throws IOException {
