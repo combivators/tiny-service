@@ -22,7 +22,7 @@ public class ServerRestartTest {
         SimpleDataSource ds = new SimpleDataSource();
         ds.getBuilder()
           .driver("org.h2.Driver")
-          .url("jdbc:h2:tcp://localhost:9001/h2")
+          .url("jdbc:h2:tcp://localhost:9092/h2")
           .username("sa")
           .password("");
         return ds;
@@ -32,7 +32,7 @@ public class ServerRestartTest {
     @Test
     public void testServerRestart() throws Exception {
 
-        H2Engine engine = H2Engine.getEngine();
+        H2Engine engine = new H2Engine.Builder().clear(true).build();
         engine.start();
 
         final int threads = 10;
@@ -53,7 +53,7 @@ public class ServerRestartTest {
         // for h2 restart
         engine.stop();
         Thread.sleep(500);
-        engine = H2Engine.getEngine();
+        engine = new H2Engine.Builder().clear(true).build();
         engine.start();
 
         new Task(ds).run();

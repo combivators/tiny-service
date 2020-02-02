@@ -42,9 +42,9 @@ public class ClassFinder {
         boolean isTarget(String className);
     }
 
-	public static enum DiscoveryMode {
-		none, annotated, all;
-	}
+    public static enum DiscoveryMode {
+        none, annotated, all;
+    }
 
     public static final boolean OSX = "Mac OS X".equals(System.getProperty("os.name"));
     public static final boolean WINDOWS = System.getProperty("os.name").toLowerCase().contains("win");
@@ -128,14 +128,14 @@ public class ClassFinder {
     }
 
     public static Collection<URL> getUrls(boolean discovery, final String exclude) {
-    	final UrlSet urlSet = getUrlSet(exclude);
-    	if(discovery) {
-    		//BeansXml.BeanDiscoveryMode mode = findDiscoveryMode(urlSet); //TODO
-    		DiscoveryMode mode = DiscoveryMode.annotated;
-    		return getUrls(urlSet, mode);
-    	} else {
-    		return urlSet.getUrls();
-    	}
+        final UrlSet urlSet = getUrlSet(exclude);
+        if(discovery) {
+            //BeansXml.BeanDiscoveryMode mode = findDiscoveryMode(urlSet); //TODO
+            DiscoveryMode mode = DiscoveryMode.annotated;
+            return getUrls(urlSet, mode);
+        } else {
+            return urlSet.getUrls();
+        }
     }
 
 /*
@@ -180,7 +180,7 @@ public class ClassFinder {
             jars = urlSet.getJars();
             for(URL url : jars) {
                 try {
-                	//TODO
+                    //TODO
                     //String resource = url.toString() + BeansXml.BEANS_XML;
                     //BeansXml beansXml = BeansXml.valueOf(resource);
                     //if(!beansXml.getBeanDiscoveryMode().equals(BeansXml.BeanDiscoveryMode.none)) {
@@ -201,11 +201,11 @@ public class ClassFinder {
     }
 
     private static UrlSet getUrlSet(final String pattern) {
-    	UrlSet urlSet = new UrlSet();
-    	if (pattern != null) {
-    		urlSet = urlSet.matching(pattern);
-    	}
-    	return urlSet;
+        UrlSet urlSet = new UrlSet();
+        if (pattern != null) {
+            urlSet = urlSet.matching(pattern);
+        }
+        return urlSet;
     }
 
     private Patterns excludePatterns =
@@ -223,16 +223,16 @@ public class ClassFinder {
     protected final Map<Class<?>, List<Class<?>>> annotated = new HashMap<>();
 
     /**
-     * Creates a ClassFinder that will search the urls from the default classpath
-     * excluding the urls in the 'exclude' patterns.
+     * Creates a ClassFinder that will search the urls from the default class path
+     * scanning the urls in the patterns.
      *
-     * @param exclude
-     *            source of classes to exclude from scanning
+     * @param pattern
+     *            Pattern of class path for scan
      * @param filter
-     *            filter of class pattern to include or exclude from scanning
+     *            filter of source class pattern to include or exclude from scanning
      */
-    public ClassFinder(String exclude, Filter filter) {
-    	this(Thread.currentThread().getContextClassLoader(), getUrlSet(exclude), filter);
+    public ClassFinder(String pattern, Filter filter) {
+        this(Thread.currentThread().getContextClassLoader(), getUrlSet(pattern), filter);
     }
 
 
@@ -297,7 +297,7 @@ public class ClassFinder {
 
     private ClassFinder(final ClassLoader classLoader, final UrlSet urlSet, final Filter filter) {
         //this.classLoader = Thread.currentThread().getContextClassLoader();
-    	this.classLoader = classLoader;
+        this.classLoader = classLoader;
         this.filter = filter;
         /*
         this.beansXml = fetchBeansXml(urlSet);
@@ -311,7 +311,7 @@ public class ClassFinder {
         this.targetUrls.stream()
                 .forEach(url -> load(true, url));
         long eta = System.currentTimeMillis() - st;
-        LOGGER.log(loggingLevel, String.format("[ClassFinder] Load %d url(s) ETA:%dms.", targetUrls.size(), eta));
+        LOGGER.log(loggingLevel, String.format("[ClassFinder] Load %d url(s) ETA:%dms", targetUrls.size(), eta));
     }
 
     public ClassFinder(final Filter filter, Collection<Class<?>> classes) {
@@ -330,8 +330,8 @@ public class ClassFinder {
 
 
     synchronized void load(boolean force, URL location) {
-    	LOGGER.info(String.format("[ClassFinder] - load '%s'", location.toString())); //TODO
-    	List<String> classNames = new ArrayList<String>();
+        LOGGER.info(String.format("[ClassFinder] - load '%s'", location.toString())); //TODO
+        List<String> classNames = new ArrayList<String>();
         if (location.getProtocol().equals("jar")) {
             try {
                 List<String> targets = jar(location);
@@ -345,10 +345,10 @@ public class ClassFinder {
             }
         } else if (location.getProtocol().equals("file")) {
             try {
-            	final String external = location.toExternalForm();
-            	//if (!external.contains("tiny") || external.contains("tiny-dic")) {
-            	//	return; //TODO
-            	//}
+                final String external = location.toExternalForm();
+                //if (!external.contains("tiny") || external.contains("tiny-dic")) {
+                //	return; //TODO
+                //}
                 // See if it's actually a jar
                 URL jarUrl = new URL("jar", "", external + "!/");
                 JarURLConnection juc = (JarURLConnection) jarUrl.openConnection();
@@ -490,7 +490,7 @@ public class ClassFinder {
             try {
                 for (Field field : type.getDeclaredFields()) {
                     if (field.isAnnotationPresent(annotation)) {
-                    	classes.add(type);
+                        classes.add(type);
                     }
                 }
             } catch (Throwable err) {
@@ -501,19 +501,19 @@ public class ClassFinder {
     }
 
     @SuppressWarnings("unchecked")
-	public <T> Class<? super Supplier<T>> findSupplier(Class<T> classType) {
+    public <T> Class<? super Supplier<T>> findSupplier(Class<T> classType) {
         for (Class<?> type : this.classTypes) {
             try {
-            	if (!Supplier.class.isAssignableFrom(type))
-            		continue;
-            	Type[] types = type.getGenericInterfaces();
+                if (!Supplier.class.isAssignableFrom(type))
+                    continue;
+                Type[] types = type.getGenericInterfaces();
                 for (Type t : types) {
                     if (!(t instanceof ParameterizedType))
-                    	continue;
+                        continue;
                     for (Type a : ((ParameterizedType)t).getActualTypeArguments()) {
-                    	if(a.equals(classType)) {
-                    		return (Class<? super Supplier<T>>)type;
-                    	}
+                        if(a.equals(classType)) {
+                            return (Class<? super Supplier<T>>)type;
+                        }
                     }
                 }
 

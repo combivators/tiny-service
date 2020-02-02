@@ -19,7 +19,7 @@ public class ThreadLocalConnectionTest {
         SimpleDataSource ds = new SimpleDataSource();
         ds.getBuilder()
           .driver("org.h2.Driver")
-          .url("jdbc:h2:tcp://localhost:9001/h2")
+          .url("jdbc:h2:tcp://localhost:9092/h2")
           .username("sa")
           .password("");
         return ds;

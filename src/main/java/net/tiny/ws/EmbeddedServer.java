@@ -11,8 +11,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -43,7 +41,7 @@ import com.sun.net.httpserver.HttpsServer;
  * @see https://github.com/kirgent/httpServerJson
  * @see https://github.com/ivan-lorenz/httpserver
  */
-public class EmbeddedServer implements Controllable, Closeable {
+public class EmbeddedServer implements Closeable {
 
     private static final Logger LOGGER = Logger.getLogger(EmbeddedServer.class.getName());
 
@@ -59,7 +57,6 @@ public class EmbeddedServer implements Controllable, Closeable {
     private final Builder builder;
     private HttpServer httpServer;
     private Throwable lastError;
-    private ConcurrentMap<String, Object> attributes = new ConcurrentHashMap<>();
     //Inner executor，External executor priority
     private ExecutorService executor;
     private String mark = "HTTP";
@@ -144,15 +141,13 @@ public class EmbeddedServer implements Controllable, Closeable {
         final String contextPath = handler.path();
         final HttpContext serverContext = httpServer.createContext(contextPath);
         if (handler.isEndpoint()) {
-        	serverContext.getAttributes().put(ExecutorService.class.getName(), executor);
+            serverContext.getAttributes().put(ExecutorService.class.getName(), executor);
             //publish a endpoint
             handler.publish(serverContext);
-            if (LOGGER.isLoggable(Level.FINE))
-                LOGGER.fine(String.format("[%s:%d] publish a endpoint on '%s'", mark, builder.port, contextPath));
+            LOGGER.info(String.format("[%s:%d] publish a endpoint on '%s'", mark, builder.port, contextPath));
         } else {
             serverContext.setHandler(handler.getBinding(HttpHandler.class));
-            if (LOGGER.isLoggable(Level.FINE))
-                LOGGER.fine(String.format("[%s:%d] bind a handler on '%s'", mark, builder.port, contextPath));
+            LOGGER.info(String.format("[%s:%d] bind a handler on '%s'", mark, builder.port, contextPath));
         }
 
         //Set filter of handler
@@ -164,11 +159,6 @@ public class EmbeddedServer implements Controllable, Closeable {
         //Set authenticator
         if (handler.isAuth()) {
             serverContext.setAuthenticator(handler.getAuth());
-        }
-
-        // Push self instance to the controller service
-        if (handler instanceof ControllerService) {
-            ((ControllerService)handler).setControllable(this);
         }
     }
 
@@ -239,7 +229,6 @@ public class EmbeddedServer implements Controllable, Closeable {
 
     /////////////////////////////////////////////
     // Controllable methods
-    @Override
     public boolean start() {
         listen(callback -> {
             if(!callback.success()) {
@@ -249,49 +238,20 @@ public class EmbeddedServer implements Controllable, Closeable {
         return lastError != null;
     }
 
-    @Override
     public void stop() {
         close();
     }
 
-    @Override
     public boolean isStarted() {
         return (null != httpServer);
     }
 
-    @Override
-    public String status() {
-        return isStarted() ? "running" : "stoped";
-    }
-
-    @Override
-    public void suspend() {
-        throw new UnsupportedOperationException("Cant not suspend embedded server.");
-    }
-
-    @Override
-    public void resume() {
-        throw new UnsupportedOperationException("Cant not resume embedded server.");
-    }
-
-    @Override
     public boolean hasError() {
         return (null != lastError);
     }
 
-    @Override
     public Throwable getLastError() {
         return lastError;
-    }
-
-    @Override
-    public Object getAttribute(String name) {
-        return attributes.get(name);
-    }
-
-    @Override
-    public void setAttribute(String name, Object value) {
-        attributes.put(name, value);
     }
 
     public void awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {

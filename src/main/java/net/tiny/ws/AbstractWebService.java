@@ -67,8 +67,8 @@ public abstract class AbstractWebService implements WebServiceHandler {
     // javax.xml.ws.Endpoint
     @Override
     public boolean isEndpoint() {
-    	// Default not support JavaEE endpoint service.
-    	// Need other provider package on JDK11
+        // Default not support JavaEE endpoint service.
+        // Need other provider package on JDK11
         return false;
     }
 

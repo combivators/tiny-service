@@ -77,7 +77,7 @@ public class OptionsServerTest {
                     assertEquals(client.getStatus(), HttpURLConnection.HTTP_OK);
                     assertEquals("application/json; charset=utf-8", client.getHeader("Content-Type"));
                     String res = new String(client.getContents());
-                    assertEquals(35, res.length());
+                    assertTrue(res.length() > 20);
                     System.out.println(res);
                 } else {
                     Throwable err = callback.cause();
