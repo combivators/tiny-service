@@ -11,12 +11,20 @@ import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
+import net.tiny.service.ServiceContext;
+
 public abstract class BaseWebService extends AbstractWebService implements HttpHandler, Constants {
 
     private static final String DEFAULT_ALLOWED_METHODS  = "GET, POST, PUT, DELETE, OPTIONS";
     private static final String GET_ONLY_ALLOWED_METHODS = "GET, OPTIONS";
 
     abstract protected void execute(HTTP_METHOD method, HttpExchange he) throws IOException;
+
+    protected ServiceContext context;
+
+    public void setContext(ServiceContext context) {
+        this.context = context;
+    }
 
     @Override
     public void handle(HttpExchange he) throws IOException {

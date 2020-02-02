@@ -48,8 +48,10 @@ public class UrlSet implements Iterable<URL> {
                 }
             }
             // On maven Test surefire-booter class loader found only one temp jar.
-            LOGGER.fine(String.format("[ClassFinder] - Found %d jar(s) and %d classpath(s) of %d - '%s'",
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.fine(String.format("[ClassFinder] - Found %d jar(s) and %d classpath(s) of %d - '%s'",
                     jars, cps, urls.length, classLoader.getClass().getName()));
+            }
             return Arrays.asList(urls);
         } else {
             LOGGER.warning(String.format("[ClassFinder] - Can not found %d classe(s) by the class loader : '%s'",
@@ -83,11 +85,11 @@ public class UrlSet implements Iterable<URL> {
         final String[] entries = classpath.split(File.pathSeparator);
         final List<URL> urls = new ArrayList<>();
         for(int i = 0; i < entries.length; i++) {
-        	try {
-        		urls.add(new File(entries[i]).toURI().toURL());
-        	} catch (MalformedURLException e) {
+            try {
+                urls.add(new File(entries[i]).toURI().toURL());
+            } catch (MalformedURLException e) {
                 LOGGER.warning(String.format("[ClassFinder] - Can not convert resource '%s'", entries[i]));
-        	}
+            }
         }
 
         if (urls.isEmpty()) {
@@ -254,9 +256,9 @@ public class UrlSet implements Iterable<URL> {
         for (Map.Entry<String, URL> entry : this.urls.entrySet()) {
             String url = entry.getKey();
             if (patterns.vaild(url)){
-            	if (LOGGER.isLoggable(Level.FINE)) {
-            		LOGGER.fine(String.format("[ClassFinder] - matching:'%s'", url));
-            	}
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.fine(String.format("[ClassFinder] - matching:'%s'", url));
+                }
                 urls.put(url, entry.getValue());
             }
         }

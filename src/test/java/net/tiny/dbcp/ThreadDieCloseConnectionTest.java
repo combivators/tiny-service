@@ -24,13 +24,12 @@ public class ThreadDieCloseConnectionTest {
         LogManager.getLogManager()
             .readConfiguration(Thread.currentThread().getContextClassLoader().getResourceAsStream("logging.properties"));
 
-        engine = H2Engine.getEngine();
+        engine = new H2Engine.Builder().clear(true).build();
         engine.start();
     }
 
     @AfterAll
     public static void afterAll() throws Exception {
-        engine.clearDatabase(true);
         engine.stop();
     }
 
@@ -38,7 +37,7 @@ public class ThreadDieCloseConnectionTest {
         SimpleDataSource ds = new SimpleDataSource();
         ds.getBuilder()
           .driver("org.h2.Driver")
-          .url("jdbc:h2:tcp://localhost:9001/h2")
+          .url("jdbc:h2:tcp://localhost:9092/h2")
           .username("sa")
           .password("");
         return ds;

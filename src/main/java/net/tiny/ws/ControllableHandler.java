@@ -2,13 +2,14 @@ package net.tiny.ws;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.util.Collection;
 import java.util.regex.Pattern;
 
 import com.sun.net.httpserver.HttpExchange;
 
-import net.tiny.service.ServiceContext;
+public class ControllableHandler extends BaseWebService {
 
-public class ControllableHandler extends BaseWebService implements ControllerService {
+    private static final String REQEST_REGEX = "(^status|^start|^stop|^suspend|^resume)([&][0-9a-zA-Z_-]+)*";
 
     enum Command {
         status,
@@ -18,14 +19,6 @@ public class ControllableHandler extends BaseWebService implements ControllerSer
         resume
     }
 
-    private Controllable server;
-
-    private ServiceContext serviceContext;
-
-
-    public void setControllable(Controllable controller) {
-        this.server = controller;
-    }
 
     @Override
     protected boolean doGetOnly() {
@@ -62,42 +55,53 @@ public class ControllableHandler extends BaseWebService implements ControllerSer
     }
 
     String query(String[] args) {
-        // Default is embedded server controller
-        Controllable controller = server;
-        if (args.length > 1) {
-            controller = lookup(args[1], Controllable.class);
-        }
+        Collection<AutoCloseable> launchers = context.lookupGroup(AutoCloseable.class);
+        if (null == launchers)
+            return null;
 
-        String response = null;
-        if (null == controller)
-            return response;
-
+        StringBuilder response = new StringBuilder();
         Command command = Command.valueOf(args[0].toLowerCase());
         switch (command) {
         case status:
-            response = controller.status();
-            break;
-        case start:
-            controller.start();
-            response = "starting";
+            for (AutoCloseable c : launchers) {
+                if (response.length() > 0) {
+                    response.append(", ");
+                }
+                response.append(c.toString());
+            }
+            response.append(" running...");
             break;
         case stop:
-            controller.stop();
-            response = "stopping";
+            Throwable err = null;
+
+            for (AutoCloseable c : launchers) {
+                if (response.length() > 0) {
+                    response.append(", ");
+                }
+                try {
+                    c.close();
+                    response.append(c.toString());
+                } catch (Exception e) {
+                    err = e;
+                }
+            }
+            response.append(" stopping...");
+            if( err != null) {
+                response.append(" Error:").append(err.getMessage());
+            }
             break;
+        case start:
         case suspend:
-            controller.suspend();
-            break;
         case resume:
-            controller.resume();
+            response.append(String.format("Unsupport command '%s'.", command.name()));
             break;
         }
-        return response;
+        return response.toString();
     }
 
     <T> T lookup(String name, Class<T> type) {
-        if (serviceContext == null)
+        if (context == null)
             return null;
-        return serviceContext.lookup(name, type);
+        return context.lookup(name, type);
     }
 }
