@@ -79,6 +79,8 @@ public class ServiceLocator implements Consumer<Callable<Properties>>, ServiceCo
     public <T> T lookup(Class<T> classType) {
         if (classType.equals(Container.class)) {
             return classType.cast(container);
+        } else if (classType.equals(ServiceContext.class)) {
+            return classType.cast(this);
         }
         List<T> list = container.getBeans(classType);
         if(list.isEmpty())

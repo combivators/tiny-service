@@ -5,6 +5,13 @@ import org.junit.jupiter.api.Test;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.spec.EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
@@ -159,6 +166,120 @@ public class JsonWebTokenTest {
         JsonWebToken other = JsonWebToken.valueOf(token);
         String publicKey = PUBLIC_KEY;
         assertTrue(other.verify(publicKey));
+    }
+
+    @Test
+    public void testEllipticCurveSigner() throws Exception {
+        KeyPair keyPair = JsonWebToken.generateKeyPair("ES256");
+        PublicKey publicKey = (PublicKey) keyPair.getPublic();
+        PrivateKey privateKey = (PrivateKey) keyPair.getPrivate();
+        String encodedPublicKey = Keys.encodeKey(publicKey);
+        System.out.println(encodedPublicKey);
+        String encodedPrivateKey =  Keys.encodeKey(privateKey);
+        System.out.println(encodedPrivateKey);
+
+        String plaintext = "1234567890abcdefghijklmnopqrst";
+        Signature ecdsaSign = Signature.getInstance("SHA256withECDSA");
+        ecdsaSign.initSign(privateKey);
+        ecdsaSign.update(plaintext.getBytes("UTF-8"));
+        byte[] signature = ecdsaSign.sign();
+        String pub = Base64.getEncoder().encodeToString(publicKey.getEncoded());
+        String sig = Base64.getEncoder().encodeToString(signature);
+        System.out.println(pub);
+        System.out.println(sig);
+
+
+        Signature ecdsaVerify = Signature.getInstance("SHA256withECDSA");
+        KeyFactory keyFactory = KeyFactory.getInstance("EC");
+        EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(Base64.getDecoder().decode(pub));
+        PublicKey verifyPublicKey = keyFactory.generatePublic(publicKeySpec);
+        ecdsaVerify.initVerify(verifyPublicKey);
+        ecdsaVerify.update(plaintext.getBytes("UTF-8"));
+        boolean result = ecdsaVerify.verify(Base64.getDecoder().decode(sig));
+        System.out.println("verify " + result);
+        assertTrue(result);
+
+
+        JsonWebToken.EllipticCurveSigner signer = new JsonWebToken.EllipticCurveSigner(JsonWebToken.Algorithm.ES256, privateKey);
+        String s = signer.sign(plaintext);
+        System.out.println(s);
+
+        JsonWebToken.EllipticCurveSigner signer2 = new JsonWebToken.EllipticCurveSigner(JsonWebToken.Algorithm.ES256, publicKey);
+        boolean ret = signer2.verify(plaintext, s);
+        System.out.println("verify " + ret);
+        assertTrue(ret);
+
+    }
+
+
+    @Test
+    public void testECDSAToken() throws Exception {
+        KeyPair keyPair = JsonWebToken.generateKeyPair("ES256");
+        PublicKey publicKey = (PublicKey) keyPair.getPublic();
+        PrivateKey privateKey = (PrivateKey) keyPair.getPrivate();
+        String encodedPublicKey = Keys.encodeKey(publicKey);
+        System.out.println(encodedPublicKey);
+        String encodedPrivateKey =  Keys.encodeKey(privateKey);
+        System.out.println(encodedPrivateKey);
+
+        Map<String, Object> payload = new HashMap<String, Object>();
+        payload.put("uid", "-Je9A7op-mEPuhrDPN9T");
+        payload.put("id", "-Je9A7op-mEPuhrDPN9T");
+        payload.put("request", "hoge");
+
+        JsonWebToken jwt = new JsonWebToken.Builder()
+                .signer("ES256", encodedPrivateKey)
+                .notBefore(new Date())
+                .subject("oauth")
+                .issuer("net.tiny")
+                .audience("user@net.tiny")
+                .jti(true)
+                .build(payload);
+        String token = jwt.token();
+
+        assertTrue(token.indexOf('=') < 0);
+        assertTrue(token.indexOf('+') < 0);
+        assertTrue(token.indexOf('/') < 0);
+
+        System.out.println(token);
+        String[] tokenFragments = token.split("\\.");
+        assertEquals(3, tokenFragments.length);
+        assertEquals("ES256", jwt.algorithm());
+
+        assertEquals("{\"typ\":\"JWT\",\"alg\":\"ES256\"}", jwt.header());
+        System.out.println(jwt.header());
+        assertTrue(jwt.claims().startsWith("{\"v\":1,"));
+        assertTrue(jwt.claims().contains("\"iat\""));
+        assertTrue(jwt.claims().contains("\"exp\""));
+        assertTrue(jwt.claims().contains("\"nbf\""));
+        assertTrue(jwt.claims().contains("\"sub\""));
+        assertTrue(jwt.claims().contains("\"iss\""));
+        assertTrue(jwt.claims().contains("\"aud\""));
+        assertTrue(jwt.claims().contains("\"jti\""));
+        assertTrue(jwt.claims().contains("\"uid\""));
+        System.out.println(jwt.claims());
+
+
+        Map<?,?> jsonHeader = JsonWebToken.mapper(jwt.header());
+        assertEquals("ES256", jsonHeader.get("alg"));
+        assertEquals("JWT", jsonHeader.get("typ"));
+
+        Map<?,?> jsonClaims = JsonWebToken.mapper(jwt.claims());
+        assertEquals(1.0d, jsonClaims.get("v"));
+        assertNotNull(jsonClaims.get("exp"));
+        assertNotNull(jsonClaims.get("nbf"));
+        assertNotNull(jsonClaims.get("iat"));
+
+        Map<?,?> jsonData = (Map<?,?>)jsonClaims.get("d");
+        assertEquals("-Je9A7op-mEPuhrDPN9T", jsonData.get("uid"));
+        assertEquals("-Je9A7op-mEPuhrDPN9T", jsonData.get("id"));
+        assertEquals("hoge", jsonData.get("request"));
+
+        JsonWebToken other = JsonWebToken.valueOf(token);
+        assertNotNull(other);
+        //String publicKey = PUBLIC_KEY;
+        assertTrue(other.verify(encodedPublicKey));
+
     }
 
     private final String SECRET_KEY = "moozooherpderp";

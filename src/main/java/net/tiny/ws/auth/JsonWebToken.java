@@ -27,7 +27,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
@@ -82,6 +84,8 @@ public final class JsonWebToken {
 
     private final static long DEFAULT_EXPIRES = 3600L; //1 hour (3600 seconds)
     private final static String DEFAULT_ALG = "HS256";
+    private static final char[] ALPHA_NUMERIC_SYMBOLS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvxyz".toCharArray();
+
 
     private final static String TOKEN_SEP = ".";
     private final static String HEADER_JSON_FORMAT = "{\"typ\":\"JWT\",\"alg\":\"%s\"}";
@@ -137,12 +141,12 @@ public final class JsonWebToken {
 
     private static final List<Algorithm> PREFERRED_EC_ALGS = Collections.unmodifiableList(
             Arrays.asList(Algorithm.ES512, Algorithm.ES384, Algorithm.ES256));
-/*
+
     public static class Header {
-        public String alg = "HS256";
+        public String alg;
         public String typ = "JWT";
     }
-
+/*
     public static class Claims {
         public int v;
         public String iss; //Issuer
@@ -428,6 +432,25 @@ public final class JsonWebToken {
         throw new IllegalArgumentException(msg);
     }
 
+    public static String generateHMACKey(String alg) {
+        final Algorithm algorithm = Algorithm.valueOf(alg.toUpperCase());
+        String key = null;
+        switch(algorithm) {
+        case HS256:
+            key = randomString(2, 60);
+            break;
+        case HS384:
+            key = randomString(64, 200);
+            break;
+        case HS512:
+            key = randomString(256, 300);
+            break;
+        default:
+            throw new UnsupportedOperationException("Only HMAC algorithms are supported by this method.");
+        }
+        return key;
+    }
+
     public static KeyPair generateKeyPair(String alg) {
         final Algorithm algorithm = Algorithm.valueOf(alg.toUpperCase());
         if ("RSA".equals(algorithm.family)) {
@@ -437,6 +460,18 @@ public final class JsonWebToken {
         } else {
             throw new UnsupportedOperationException("Only RSA or ECDSA algorithms are supported by this method.");
         }
+    }
+
+    /**
+     * Generate a random string.
+     */
+    public static String randomString(int min, int max) {
+        Random random = ThreadLocalRandom.current();
+        int length = min + random.nextInt(max-min);
+        char[] buf = new char[length];
+        for (int idx = 0; idx < buf.length; ++idx)
+            buf[idx] = ALPHA_NUMERIC_SYMBOLS[random.nextInt(ALPHA_NUMERIC_SYMBOLS.length)];
+        return new String(buf);
     }
 
     static KeyPair generateRSAKeyPair(Algorithm alg) {
@@ -667,6 +702,8 @@ public final class JsonWebToken {
         }
     }
 
+
+
     static abstract class Signer {
         Algorithm algorithm;
         Key key;
@@ -787,7 +824,7 @@ public final class JsonWebToken {
             byte[] data = bits.getBytes(StandardCharsets.UTF_8);
             PublicKey publicKey = (PublicKey) key;
             try {
-                int expectedSize = getSignatureByteArrayLength(algorithm);
+                //int expectedSize = getSignatureByteArrayLength(algorithm);
                 /**
                  *
                  * If the expected size is not valid for JOSE, fall back to ASN.1 DER signature.
@@ -795,19 +832,24 @@ public final class JsonWebToken {
                  * and backwards compatibility will possibly be removed in a future version of this library.
                  *
                  * **/
-                byte[] derSignature = expectedSize != signature.length && signature[0] == 0x30 ? signature : transcodeSignatureToDER(signature);
-                return doVerify(signer, publicKey, data, derSignature);
+                //byte[] derSignature = expectedSize != signature.length && signature[0] == 0x30 ? signature : transcodeSignatureToDER(signature);
+                //return doVerify(signer, publicKey, data, derSignature);
+
+
+                signer.initVerify(publicKey);
+                signer.update(data);
+                return signer.verify(Base64.getUrlDecoder().decode(signature));
             } catch (InvalidKeyException | SignatureException e) {
                 String msg = "Unable to verify Elliptic Curve signature using configured ECPublicKey. " + e.getMessage();
                 throw new RuntimeException(msg, e);
             }
         }
-
+/*
         protected byte[] doSign(byte[] data) throws InvalidKeyException, SignatureException {
             byte[] derSignature = super.doSign(data);
             return transcodeSignatureToConcat(derSignature, getSignatureByteArrayLength(algorithm));
         }
-
+*/
     }
 
     static class MacSigner extends Signer {

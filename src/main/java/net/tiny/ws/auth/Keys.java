@@ -353,9 +353,47 @@ public class Keys {
         }
     }
 
+
     public static Key decodeEllipticCurveKey(String key) {
-        //TODO
-        return null;
+        if (key.contains("EC PRIVATE KEY")) {
+            return decodeEllipticCurvePrivateKey(key);
+        } else if (key.contains("PUBLIC KEY")) {
+            return decodeEllipticCurvePublicKey(key);
+        } else {
+            throw new IllegalArgumentException("Unsupported ECDSA key format");
+        }
+    }
+
+    public static Key decodeEllipticCurvePublicKey(String publicKey) {
+        // Remove BEGIN and END comments
+        final String key = publicKey
+                .replace("-----BEGIN PUBLIC KEY-----", "")
+                .replace("-----END PUBLIC KEY-----", "")
+                .replaceAll("\\s+","");
+        byte[] keyBytes = Base64.getDecoder().decode(key);
+        try {
+            X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
+            KeyFactory keyFactory = KeyFactory.getInstance("EC");
+            return keyFactory.generatePublic(spec);
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            throw new IllegalArgumentException("Unsupported ECDSA public key format : " + e.getMessage());
+        }
+    }
+
+    public static Key decodeEllipticCurvePrivateKey(String privateKey) {
+        // Remove BEGIN and END comments
+        final String key = privateKey
+                .replace("-----BEGIN EC PRIVATE KEY-----", "")
+                .replace("-----END EC PRIVATE KEY-----", "")
+                .replaceAll("\\s+","");
+        byte[] keyBytes = Base64.getMimeDecoder().decode(key);
+        try {
+            PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
+            KeyFactory keyFactory = KeyFactory.getInstance("EC");
+            return keyFactory.generatePrivate(spec);
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            throw new IllegalArgumentException("Unsupported ECDSA private key format : " + e.getMessage());
+        }
     }
 
 }

@@ -11,6 +11,7 @@ public class CacheFunction implements Function<URL,byte[]> {
     private final static Logger LOGGER = Logger.getLogger(CacheFunction.class.getName());
 
     private ContentsCache cache;
+    private int size;
 
     public CacheFunction() {
         this(null);
@@ -22,6 +23,15 @@ public class CacheFunction implements Function<URL,byte[]> {
 
     public CacheFunction(ContentsCache cc) {
         cache = cc;
+    }
+
+    public void setSize(int n) {
+        size = n;
+        if(size > 0) {
+            cache = new ContentsCache(size);
+        } else {
+            cache = null;
+        }
     }
 
     @Override

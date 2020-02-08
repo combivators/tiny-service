@@ -530,7 +530,7 @@ public class Codec {
     static char getDigitChar()
     {
 		int r = random.nextInt(10);
-		char ch = (new Integer(r)).toString().charAt(0);
+		char ch = String.valueOf(r).charAt(0);
         return ch;
     }
 
