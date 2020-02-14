@@ -51,7 +51,6 @@ public class ClassFinder {
     public static final boolean UNIX = (!OSX && !WINDOWS);
 
     private static Level loggingLevel = Level.FINE;
-    protected static boolean verbose = false;
 
     private static class ClassPatternFilter implements Filter {
         private final Patterns patterns;
@@ -311,7 +310,7 @@ public class ClassFinder {
         this.targetUrls.stream()
                 .forEach(url -> load(true, url));
         long eta = System.currentTimeMillis() - st;
-        LOGGER.log(loggingLevel, String.format("[ClassFinder] Load %d url(s) ETA:%dms", targetUrls.size(), eta));
+        LOGGER.info(String.format("[ClassFinder] Load %d url(s) ETA:%dms", targetUrls.size(), eta));
     }
 
     public ClassFinder(final Filter filter, Collection<Class<?>> classes) {
@@ -330,14 +329,15 @@ public class ClassFinder {
 
 
     synchronized void load(boolean force, URL location) {
-        LOGGER.info(String.format("[ClassFinder] - load '%s'", location.toString())); //TODO
         List<String> classNames = new ArrayList<String>();
         if (location.getProtocol().equals("jar")) {
             try {
                 List<String> targets = jar(location);
                 if (!targets.isEmpty()) {
-                    LOGGER.log(loggingLevel, String.format("[ClassFinder] - Found %d classe(s) on '%s'",
+                    if (LOGGER.isLoggable(loggingLevel)) {
+                        LOGGER.log(loggingLevel, String.format("[ClassFinder] - Found %d classe(s) on '%s'",
                                     targets.size(), location.toString()));
+                    }
                     classNames.addAll(targets);
                 }
             } catch (IOException ex) {
@@ -346,25 +346,26 @@ public class ClassFinder {
         } else if (location.getProtocol().equals("file")) {
             try {
                 final String external = location.toExternalForm();
-                //if (!external.contains("tiny") || external.contains("tiny-dic")) {
-                //	return; //TODO
-                //}
                 // See if it's actually a jar
                 URL jarUrl = new URL("jar", "", external + "!/");
                 JarURLConnection juc = (JarURLConnection) jarUrl.openConnection();
                 juc.getJarFile();
                 List<String> targets = jar(jarUrl);
                 if (!targets.isEmpty()) {
-                    LOGGER.log(loggingLevel, String.format("[ClassFinder] - Found %d classe(s) on '%s'",
+                    if (LOGGER.isLoggable(loggingLevel)) {
+                        LOGGER.log(loggingLevel, String.format("[ClassFinder] - Found %d classe(s) on '%s'",
                                     targets.size(), jarUrl.toString()));
+                    }
                     classNames.addAll(targets);
                 }
             } catch (IOException ex) {
                 // See if it's local class path
                 List<String> targets = file(location);
                 if (!targets.isEmpty()) {
-                    LOGGER.log(loggingLevel, String.format("[ClassFinder] - Found %d classe(s) on '%s'",
+                    if (LOGGER.isLoggable(loggingLevel)) {
+                        LOGGER.log(loggingLevel, String.format("[ClassFinder] - Found %d classe(s) on '%s'",
                                     targets.size(), location.toString()));
+                    }
                     classNames.addAll(targets);
                 }
             }
@@ -803,9 +804,6 @@ public class ClassFinder {
     protected void readClassDef(Class<?> type) {
         if (isTargetClass(type)) {
             this.classTypes.add(type);
-            if(verbose) {
-                LOGGER.log(loggingLevel, String.format("[ClassFinder] - Class: '%1$s'", type.getName()));
-            }
             if (!type.isInterface()) {
                 Class<?>[] ifs = type.getInterfaces();
                 for (Class<?> i : ifs) {

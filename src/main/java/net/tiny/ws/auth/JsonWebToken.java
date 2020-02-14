@@ -286,17 +286,32 @@ public final class JsonWebToken {
     }
 
     public boolean expired() {
-        Object value = mapper(decodeJson(claims)).get("exp");
+        Map<?,?> map = mapper(decodeJson(claims));
+        Object value = map.get("exp");
         if (null == value)
             return false;
+        boolean e = expired(value);
+        if (!e) {
+            value = map.get("nbf");
+            if (null != value) {
+                e = expired(value);
+            }
+        }
+        return e;
+    }
+
+    private boolean expired(Object value) {
         long exp = 0L;
         if (value instanceof Double) {
             exp = ((Double)value).longValue();
         } else {
             try {
                 exp = Long.parseLong(String.valueOf(value));
-            } catch (NumberFormatException e) {}
+            } catch (NumberFormatException e) {
+                return true;
+            }
         }
+        exp = exp*1000L;
         return exp < System.currentTimeMillis();
     }
 
@@ -881,6 +896,7 @@ public final class JsonWebToken {
             return sig.equals(sign(bits));
         }
     }
+
 
     public static class Options {
         Date expires = new Date(System.currentTimeMillis() + DEFAULT_EXPIRES);

@@ -5,8 +5,9 @@ import java.util.List;
 import com.sun.net.httpserver.Authenticator;
 import com.sun.net.httpserver.Filter;
 import com.sun.net.httpserver.HttpContext;
+import com.sun.net.httpserver.HttpHandler;
 
-public interface WebServiceHandler  {
+public interface WebServiceHandler extends HttpHandler {
     String path();
     WebServiceHandler path(String path);
 

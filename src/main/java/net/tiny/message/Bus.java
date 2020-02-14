@@ -405,6 +405,12 @@ public final class Bus<T> {
             observers.accept(message);
     }
 
+    public boolean valid(String channel) {
+        if (null == channel || channel.isEmpty())
+            return false;
+        return keyObservers.containsKey(channel);
+    }
+
     @Override
     public String toString() {
         return String.format("{%s} channels:%s running:%d", type.getSimpleName(),

@@ -49,25 +49,24 @@ public interface ServiceContext {
 
     int getProcessId();
 
-    Listener MONITOR = new Listener() {
+    public static class Monitor implements Listener {
         @Override
         public void invoke(Object inst, Method method, Object param) {
-            LOGGER.info(" [invoke] - " + inst.getClass().getName() + "."
-                    + method.getName() + "('" + param + "')");
+            LOGGER.info(String.format("[DI] - [invoke] %s.%s('%s')", inst.getClass().getName(), method.getName(), param));
         }
         @Override
         public void bind(String name) {
-            LOGGER.info(" [registry] - bind '" + name+ "'");
+            LOGGER.info(String.format("[DI] - [bind] '%s'", name));
         }
 
         @Override
         public void unbind(String name) {
-            LOGGER.info(" [registry] - unbind '" + name+ "'");
+            LOGGER.info(String.format("[DI] - [unbind] '%s'", name));
         }
 
         @Override
         public void created(String address) {
-            LOGGER.info(" [registry] - created on '" + address+ "'");
+            LOGGER.info(String.format("[DI] - [created] created on '%s'", address));
         }
 
         @Override
@@ -97,5 +96,6 @@ public interface ServiceContext {
                 LOGGER.log(Level.SEVERE, msg);
             }
         }
-    };
+
+    }
 }

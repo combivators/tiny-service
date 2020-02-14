@@ -4,15 +4,28 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
+import java.util.Optional;
 import java.util.logging.Level;
 
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
 
-public abstract class BaseWebService extends AbstractWebService implements HttpHandler, Constants {
+public abstract class BaseWebService extends AbstractWebService implements Constants {
 
+    private static final String[] IP_HEADER_CANDIDATES = {
+            "X-Forwarded-For",
+            "Proxy-Client-IP",
+            "WL-Proxy-Client-IP",
+            "HTTP_X_FORWARDED_FOR",
+            "HTTP_X_FORWARDED",
+            "HTTP_X_CLUSTER_CLIENT_IP",
+            "HTTP_CLIENT_IP",
+            "HTTP_FORWARDED_FOR",
+            "HTTP_FORWARDED",
+            "HTTP_VIA",
+            "REMOTE_ADDR" };
     private static final String DEFAULT_ALLOWED_METHODS  = "GET, POST, PUT, DELETE, OPTIONS";
     private static final String GET_ONLY_ALLOWED_METHODS = "GET, OPTIONS";
 
@@ -95,5 +108,28 @@ public abstract class BaseWebService extends AbstractWebService implements HttpH
 
     protected final String loadResource(String resource) throws IOException {
         return new String(readResource(resource));
+    }
+
+    public static <V> V getClientAddress(HttpExchange he, Class<V> paramType) {
+        Optional<String> remote = getClientAddress(he.getRequestHeaders());
+        if (remote.isPresent() && paramType.equals(String.class)) {
+            return paramType.cast(remote.get());
+        }
+        InetAddress address = he.getRemoteAddress().getAddress();
+        if (paramType.equals(InetAddress.class)) {
+            return paramType.cast(address);
+        } else {
+            return paramType.cast(address.getHostAddress());
+        }
+    }
+
+    static Optional<String> getClientAddress(Headers headers) {
+        for (String header : IP_HEADER_CANDIDATES) {
+            String ip = headers.getFirst(header);
+            if (ip != null && ip.length() != 0 && !"unknown".equalsIgnoreCase(ip)) {
+                return Optional.of(ip);
+            }
+        }
+        return Optional.empty();
     }
 }

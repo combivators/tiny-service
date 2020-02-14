@@ -1,22 +1,29 @@
 package net.tiny.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.ByteArrayInputStream;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
+
+import javax.annotation.Resource;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import net.tiny.boot.ApplicationContext;
 import net.tiny.boot.Main;
+import net.tiny.config.Configuration;
+import net.tiny.config.ConfigurationHandler;
+import net.tiny.config.ContextHandler;
 import net.tiny.service.ServiceContext;
 import net.tiny.service.ClassFinder;
 import net.tiny.service.ClassHelper;
@@ -112,4 +119,107 @@ public class ServiceContextTest {
         assertNotNull(result);
         assertEquals(0, result.get().intValue());
     }
+
+    static final String LS = System.getProperty("line.separator");
+
+    @Test
+    public void testInjectServiceContext() throws Exception {
+        ServiceLocator context = new ServiceLocator();
+
+        String conf =
+          "main: ${app.sample}, ${app.test}" + LS
+        + "app:" + LS
+        + "  sample: " + LS
+        + "    class: net.tiny.service.ServiceContextTest$SampleBean" + LS
+        + "  test:" + LS
+        + "    class: net.tiny.service.ServiceContextTest$TestBean" + LS
+        + "  handler:" + LS
+        + "    class: net.tiny.service.ServiceContextTest$SampleHandler" + LS
+        + LS;
+        ByteArrayInputStream bais = new ByteArrayInputStream(conf.getBytes());
+
+        Collector collector = new Collector();
+        ConfigurationHandler handler = new ConfigurationHandler();
+        handler.setListener(collector);
+        handler.parse(bais, ContextHandler.Type.YAML, true);
+        Configuration configuration = handler.getConfiguration();
+        configuration.remains();
+
+        context.accept(new Callable<Properties>() {
+            @Override
+            public Properties call() {
+                // Setup service locator properties;
+                Properties services = new Properties();
+                services.put("config", configuration);
+                services.put("main", this);
+                services.put("PID", 12345L);
+                for (String key : collector.keys()) {
+                    services.put(key, collector.get(key));
+                }
+                collector.collection.clear();
+                return services;
+            }
+        });
+
+        SampleBean sb = context.lookup(SampleBean.class);
+        assertNotNull(sb);
+        assertNotNull(sb.context);
+        assertSame(context, sb.context);
+        TestBean tb = context.lookup(TestBean.class);
+        assertNotNull(tb);
+        assertNotNull(tb.context);
+        assertSame(context, tb.context);
+
+        SampleHandler sh = context.lookup(SampleHandler.class);
+        assertNotNull(sh);
+        assertNotNull(sh.context);
+        assertSame(context, sh.context);
+    }
+
+    static class Collector implements ContextHandler.Listener {
+        final Map<String, Object> collection = new HashMap<>();
+
+        @Override
+        public void created(Object bean, Class<?> beanClass) {
+        }
+
+        @Override
+        public void parsed(String type, String resource, int size) {
+        }
+
+        @Override
+        public void cached(String name, Object value, boolean config) {
+            if (!config) {
+                collection.put(name, value);
+            }
+        }
+        public Set<String> keys() {
+            return collection.keySet();
+        }
+        public Object get(String name) {
+            return collection.get(name);
+        }
+    }
+
+    public static class SampleBean {
+        @Resource
+        ServiceContext context;
+
+    }
+
+    public static class TestBean {
+        @Resource
+        ServiceContext context;
+    }
+
+    static abstract class AbstractSample {
+        @Resource
+        protected ServiceContext context;
+
+    }
+    static abstract class SampleBase extends AbstractSample {}
+
+    public static class SampleHandler extends SampleBase {
+    }
+
 }

@@ -1,0 +1,20 @@
+// Converting a Java Keystore into PEM Format
+keytool -genkeypair -alias server -keystore server.jks -storepass changeit -keypass changeit -dname "CN=localhost, OU=Web Service, O=Company Inc., L=Arakawa, ST=Tokyo, C=JP" -validity 366 -keyalg RSA -sigalg SHA1withRSA -keysize 2048 -ext bc=ca:true
+keytool -importkeystore -srckeystore server.jks -storepass changeit -keypass changeit -srcstoretype jks -deststoretype pkcs12 -destkeypass changeit -destkeystore server.p12
+keytool -exportcert -alias server -keystore server.jks -storepass changeit -keypass changeit -rfc -file server.pem
+openssl pkcs12 -in server.p12 -out server.pem
+openssl x509 -text -in server.pem
+
+curl -v --cacert src/test/resources/ca/cacert.pem http://localhost:8443/hello/Hoge
+export CURL_CA_BUNDLE=/usr/local/share/curl/cacert.pem
+
+mvn exec:java -Dexec.mainClass="net.tiny.boot.Main" -Dexec.args="-v -p ssl" -Dexec.classpathScope=java
+curl --remote-name --time-cond cacert.pem https://curl.haxx.se/ca/cacert.pem
+
+curl -u paas:password -v --cacert src/test/resources/ssl/server.pem https://localhost:8443/sys/stop
+curl -v --cacert src/test/resources/ssl/server.pem https://localhost:8443/health
+curl -v --insecure https://localhost:8443/health
+curl -v http://localhost:8080/health
+
+openssl s_client -connect localhost:8443 < /dev/null 2> /dev/null | openssl x509 -text
+openssl s_client -connect concourse.corp.yahoo.co.jp:443 < /dev/null 2> /dev/null | openssl x509 -text

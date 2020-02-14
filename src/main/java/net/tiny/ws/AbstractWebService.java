@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
+import javax.annotation.Resource;
+
 import com.sun.net.httpserver.Authenticator;
 import com.sun.net.httpserver.Filter;
 
@@ -13,15 +15,15 @@ public abstract class AbstractWebService implements WebServiceHandler {
 
     protected static final Logger LOGGER = Logger.getLogger(AbstractWebService.class.getName());
 
+    @Resource
+    protected ServiceContext context;
     protected String path;
     protected List<Filter> filters = new ArrayList<>();
     protected Authenticator auth = null;
-    protected ServiceContext context;
 
     public void setContext(ServiceContext context) {
         this.context = context;
     }
-
 
     @Override
     public String path() {

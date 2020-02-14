@@ -26,6 +26,7 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.TrustManagerFactory;
 
+import com.sun.net.httpserver.Authenticator;
 import com.sun.net.httpserver.Filter;
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpHandler;
@@ -33,6 +34,8 @@ import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.HttpsConfigurator;
 import com.sun.net.httpserver.HttpsParameters;
 import com.sun.net.httpserver.HttpsServer;
+
+import net.tiny.config.Reflections;
 
 /**
  * @see https://github.com/calebrob6/json-server
@@ -123,9 +126,13 @@ public class EmbeddedServer implements Closeable {
             httpServer.setExecutor(executor);
         }
 
-        for (WebServiceHandler handler : builder.handlers) {
+        for (HttpHandler handler : builder.handlers) {
             try {
-                handle(handler);
+                if (handler instanceof WebServiceHandler) {
+                    handle((WebServiceHandler)handler);
+                } else {
+                    handle(handler);
+                }
             } catch (RuntimeException e) {
                 LOGGER.log(Level.SEVERE, String.format("[%s:%d] Bind handler '%s' error : %s",
                         mark, builder.port, handler.toString(), e.getMessage()), e);
@@ -137,6 +144,31 @@ public class EmbeddedServer implements Closeable {
         LOGGER.info(String.format("[%s:%d] Embedded server listen on %s", mark, builder.port, url));
     }
 
+    @SuppressWarnings("unchecked")
+    private void handle(HttpHandler handler) {
+        final String contextPath = String.valueOf(Reflections.getFieldValue(handler, "path"));
+        final HttpContext serverContext = httpServer.createContext(contextPath);
+        serverContext.setHandler(handler);
+        LOGGER.info(String.format("[%s:%d] bind a handler on '%s'", mark, builder.port, contextPath));
+
+        try {
+            //Set filter of handler
+            List<Filter> hfs = (List<Filter>)Reflections.getFieldValue(handler, "filters");
+            if (null != hfs) {
+                List<Filter> filters = serverContext.getFilters();
+                filters.addAll(hfs);
+            }
+        } catch (RuntimeException e) {}//Ignore
+
+        try {
+            //Set authenticator
+            Authenticator auth = (Authenticator)Reflections.getFieldValue(handler, "auth");
+            if (null != auth) {
+                serverContext.setAuthenticator(auth);
+            }
+        } catch (RuntimeException e) {}//Ignore
+    }
+
     protected void handle(WebServiceHandler handler) {
         final String contextPath = handler.path();
         final HttpContext serverContext = httpServer.createContext(contextPath);
@@ -146,7 +178,8 @@ public class EmbeddedServer implements Closeable {
             handler.publish(serverContext);
             LOGGER.info(String.format("[%s:%d] publish a endpoint on '%s'", mark, builder.port, contextPath));
         } else {
-            serverContext.setHandler(handler.getBinding(HttpHandler.class));
+            //serverContext.setHandler(handler.getBinding(HttpHandler.class));
+            serverContext.setHandler(handler);
             LOGGER.info(String.format("[%s:%d] bind a handler on '%s'", mark, builder.port, contextPath));
         }
 
@@ -401,7 +434,8 @@ public class EmbeddedServer implements Closeable {
         ExecutorService executor;
         RandomPorts random;
 
-        List<WebServiceHandler> handlers = new ArrayList<>();
+        //List<WebServiceHandler> handlers = new ArrayList<>();
+        List<HttpHandler> handlers = new ArrayList<>();
         private List<String> paths = new ArrayList<>();
 
         public Builder bind(String ip) {
@@ -439,20 +473,31 @@ public class EmbeddedServer implements Closeable {
             stopTimeout = delay;
             return this;
         }
-        public Builder handlers(List<WebServiceHandler> list) {
-            for (WebServiceHandler handler : list) {
-                if (!paths.contains(handler.path())) {
-                    paths.add(handler.path());
+        public Builder handlers(List<HttpHandler> list) {
+            for (HttpHandler handler : list) {
+                String path = "/";
+                if (handler instanceof WebServiceHandler) {
+                    path = ((WebServiceHandler)handler).path();
+                } else {
+                    path = String.valueOf(Reflections.getFieldValue(handler, "path"));
+                }
+                if (!paths.contains(path)) {
+                    paths.add(path);
                     handlers.add(handler);
                 }
             }
             return this;
         }
 
-        public Builder handler(String path, WebServiceHandler handler) {
+        public Builder handler(String path, HttpHandler handler) {
             if (!paths.contains(path)) {
                 paths.add(path);
-                handlers.add(handler.path(path));
+                if (handler instanceof WebServiceHandler) {
+                   ((WebServiceHandler)handler).path(path);
+                } else {
+                    Reflections.setFieldValue(handler, "path", path);
+                }
+                handlers.add(handler);
             }
             return this;
         }

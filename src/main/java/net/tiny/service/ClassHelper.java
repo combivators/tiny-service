@@ -105,6 +105,17 @@ public class ClassHelper {
                     fields.add(field);
                 }
             }
+
+            Class<?> superClass = type.getSuperclass();
+            if(null != superClass) {
+                String pn = superClass.getPackage().getName();
+                if (!(pn.startsWith("java.") || pn.startsWith("javax."))) {
+                    List<Field> parentFields = findAnnotatedFields(superClass, annotation);
+                    if (!parentFields.isEmpty()) {
+                        fields.addAll(parentFields);
+                    }
+                }
+            }
         } catch (Throwable err) {
             // Ignore
         }
