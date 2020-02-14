@@ -338,6 +338,8 @@ public class Keys {
             return decodeRSAPrivateKey(key);
         } else if (key.contains("PUBLIC KEY")) {
             return decodeRSAPublicKey(key);
+        } else if (key.startsWith("ssh-rsa")){
+            return decodeSSHPublicKey(key);
         } else {
             throw new IllegalArgumentException("Unsupported RSA key format");
         }

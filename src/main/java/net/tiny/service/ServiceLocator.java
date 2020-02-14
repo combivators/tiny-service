@@ -2,7 +2,7 @@ package net.tiny.service;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
-import java.lang.reflect.Method;
+import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
@@ -13,13 +13,14 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.annotation.Resource;
+
 public class ServiceLocator implements Consumer<Callable<Properties>>, ServiceContext {
 
     protected static final Logger LOGGER = Logger.getLogger(ServiceLocator.class.getName());
 
     protected Container container = new Container();
     private Listener listener = null;
-
 
     ////////////////////////////////////////
     // Service consumer callback method, will be called by main process.
@@ -31,18 +32,38 @@ public class ServiceLocator implements Consumer<Callable<Properties>>, ServiceCo
             services.keySet()
                 .stream()
                 .forEach(e -> names.add(String.valueOf(e)));
-
             for (String name : names) {
                 Object bean = services.get(name);
                 bind(name, bean, true);
+                injectServiceContext(bean);
             }
-
-            LOGGER.info(String.format("[BOOT] Bound %d service(s) on ServiceContext#%d", services.size(), hashCode()));
+            LOGGER.info(String.format("[BOOT] Bound %d service(s) in ServiceContext#%d container.", services.size(), hashCode()));
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, String.format("[BOOT] Service consumer callback error : %s",
                     e.getMessage()) ,e);
         }
+    }
 
+    //////////////////////////////////////////////////
+    // @Resource ServiceContext field will be injected
+    private void injectServiceContext(Object bean) {
+        final List<Field> withResouceAnnotatedFields = ClassHelper.findAnnotatedFields(bean.getClass(), Resource.class);
+
+        for (Field field : withResouceAnnotatedFields) {
+            if (ServiceContext.class.equals(field.getGenericType())) {
+                field.setAccessible(true);
+                try {
+                    field.set(bean, this);
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.fine(String.format("[BOOT] Injection @Resouce of '%s.%s'",
+                            field.getDeclaringClass().getSimpleName(),
+                            field.getName()));
+                    }
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e.getMessage(), e);
+                }
+            }
+        }
     }
 
     protected void setProcessId() {
@@ -201,55 +222,4 @@ public class ServiceLocator implements Consumer<Callable<Properties>>, ServiceCo
         return sb.toString();
     }
 
-
-    public static class ServiceMonitor implements Listener {
-        @Override
-        public void invoke(Object inst, Method method, Object param) {
-            LOGGER.info(" [invoke] - " + inst.getClass().getName() + "."
-                    + method.getName() + "('" + param + "')");
-        }
-        @Override
-        public void bind(String name) {
-            LOGGER.info(" [bind] - bind '" + name+ "'");
-        }
-
-        @Override
-        public void unbind(String name) {
-            LOGGER.info(" [unbind] - unbind '" + name+ "'");
-        }
-
-        @Override
-        public void created(String address) {
-            LOGGER.info(" [created] - created on '" + address+ "'");
-        }
-
-        @Override
-        public void debug(String msg) {
-            LOGGER.fine(msg);
-        }
-
-        @Override
-        public void info(String msg) {
-            LOGGER.info(msg);
-        }
-
-        @Override
-        public void warn(String msg, Throwable exception) {
-            if(null != exception) {
-                LOGGER.log(Level.WARNING, msg, exception);
-            } else {
-                LOGGER.log(Level.WARNING, msg);
-            }
-        }
-
-        @Override
-        public void error(String msg, Throwable exception) {
-            if(null != exception) {
-                LOGGER.log(Level.SEVERE, msg, exception);
-            } else {
-                LOGGER.log(Level.SEVERE, msg);
-            }
-        }
-
-    }
 }

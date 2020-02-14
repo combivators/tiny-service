@@ -12,9 +12,11 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -477,6 +479,16 @@ public class JsonWebTokenTest {
                 .build(payload)
                 .token();
         assertNotNull(token2);
+    }
+
+    @Test
+    public void testRandomString() {
+        int loop = 1000;
+        List<String> list = new ArrayList<>();
+        for (int i=0; i<loop; i++) {
+            String r = JsonWebToken.randomString(10, 16);
+            assertFalse(list.contains(r));
+        }
     }
 
 }

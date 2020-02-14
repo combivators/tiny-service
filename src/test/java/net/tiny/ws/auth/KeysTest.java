@@ -212,19 +212,29 @@ public class KeysTest {
     public void testSSHPublicKey() throws Exception {
         KeyPair keyPair = JsonWebToken.generateKeyPair("RS256");
         PublicKey publicKey = (PublicKey) keyPair.getPublic();
-        String encodedPublicKey = Keys.encodeSSHPublicKey(publicKey, "user@test.com");
+        PrivateKey privateKey = (PrivateKey) keyPair.getPrivate();
+        String encodedPublicKey = Keys.encodeSSHPublicKey(publicKey, "info@tiny.net");
         System.out.println(encodedPublicKey);
         assertTrue(encodedPublicKey.startsWith("ssh-rsa "));
-        assertTrue(encodedPublicKey.endsWith(" user@test.com"));
+        assertTrue(encodedPublicKey.endsWith(" info@tiny.net"));
+        String encodedPrivateKey = Keys.encodeKey(privateKey);
+        System.out.println("Private Key:");
+        System.out.println(encodedPrivateKey);
+
+        assertNotNull(Keys.decodeRSAPrivateKey(encodedPrivateKey));
 
         assertNotNull(Keys.decodeSSHPublicKey(encodedPublicKey));
 
         keyPair = JsonWebToken.generateKeyPair("ES256");
         publicKey = (PublicKey) keyPair.getPublic();
-        encodedPublicKey = Keys.encodeSSHPublicKey(publicKey, "user@test.com");
+        encodedPublicKey = Keys.encodeSSHPublicKey(publicKey, "info@tiny.net");
         System.out.println(encodedPublicKey);
         assertTrue(encodedPublicKey.startsWith("ecdsa-sha2-"));
-        assertTrue(encodedPublicKey.endsWith(" user@test.com"));
+        assertTrue(encodedPublicKey.endsWith(" info@tiny.net"));
+
+        encodedPrivateKey = Keys.encodeKey(privateKey);
+        System.out.println("Private Key:");
+        System.out.println(encodedPrivateKey);
     }
 
 
