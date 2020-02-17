@@ -1,16 +1,20 @@
 package net.tiny.ws;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.io.Writer;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import com.sun.net.httpserver.Filter;
@@ -23,9 +27,9 @@ import com.sun.net.httpserver.HttpPrincipal;
  * @see https://qiita.com/ryounagaoka/items/e7782ab29ff9fbe8f891
  *
  */
-public class AccessLogger extends Filter {
+public class VirtualLogger extends Filter {
 
-    private static final Logger LOGGER = Logger.getLogger(AccessLogger.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(VirtualLogger.class.getName());
 
     /*
      * LogFormat "%h %l %u %t \"%r\" %>s %b" common
@@ -84,12 +88,10 @@ public class AccessLogger extends Filter {
 
     private Format format = Format.COMBINED;
     private String formatPattern = combined();
-    private String out = null;
-    private PrintWriter writer;
-
-    public AccessLogger() {
-        setOut("stderr");
-    }
+    private List<VirtualHost> hosts = new ArrayList<>();
+    private Map<String, PrintWriter> writers = null;
+    //private String out = null;
+    //private PrintWriter writer;
 
     @Override
     public void doFilter(HttpExchange exchange, Chain chain) throws IOException {
@@ -98,47 +100,26 @@ public class AccessLogger extends Filter {
             chain.doFilter(exchange);
         }
         String log = format(exchange, formatPattern, (System.currentTimeMillis()-start));
-        writeAccessLog(log);
+        final String host = exchange.getRequestHeaders().getFirst("Host");
+        writeAccessLog(host, log);
     }
 
     @Override
     public String description() {
-        return "Access log filter";
+        return "Virtual host access log filter";
     }
 
-    public void setOut(String file) {
-        this.out = file;
-        switch(out) {
-        case "stdout":
-            setLogger(new PrintWriter(new BufferedWriter(new OutputStreamWriter(System.out))));
-            break;
-        case "stderr":
-            setLogger(new PrintWriter(new BufferedWriter(new OutputStreamWriter(System.err))));
-            break;
-        default:
-            try {
-                setLogger(new PrintWriter(new BufferedWriter(new FileWriter(file))));
-            } catch (IOException ex) {
-                setLogger(new PrintWriter(new BufferedWriter(new OutputStreamWriter(System.out))));
-                LOGGER.severe(String.format("Cant not access log file '%s', output to console.", file));
-            }
-            break;
+    PrintWriter findAccessWriter(String virtual) {
+        PrintWriter writer = writers.get(virtual);
+        if (writer == null) {
+            // Find host name without port
+            writer = writers.get(virtual.split(":")[0]);
         }
+        return writer;
     }
 
-    protected void setLogger(Writer logger) {
-        if (logger instanceof PrintWriter) {
-            writer = (PrintWriter)logger;
-        } else {
-            if (!(logger instanceof BufferedWriter)) {
-                writer = new PrintWriter(new BufferedWriter(logger));
-            } else {
-                writer = new PrintWriter(logger);
-            }
-        }
-    }
-
-    void writeAccessLog(String log) {
+    void writeAccessLog(String virtual, String log) {
+        PrintWriter writer = findAccessWriter(virtual);
         writer.println(log);
         writer.flush();
     }
@@ -173,7 +154,7 @@ public class AccessLogger extends Filter {
     }
 
     private String format(HttpExchange exchange, String formatPattern, long time) {
-        final String host = exchange.getRemoteAddress().getAddress().getHostAddress();
+        final String remote = exchange.getRemoteAddress().getAddress().getHostAddress();
         String identity = "-";
         String username = "-";
         final HttpPrincipal principal = exchange.getPrincipal();
@@ -198,13 +179,57 @@ public class AccessLogger extends Filter {
         }
         String timeTaken = String.format("%.3f", ((float)time/1000f));
         return MessageFormat.format(formatPattern,
-                host, identity, username, date, timeTaken, request, code, size, referer, agent);
+                remote, identity, username, date, timeTaken, request, code, size, referer, agent);
+    }
+
+    public void setHosts(List<VirtualHost> virtuals) {
+        this.hosts = virtuals;
+        this.writers = new HashMap<>();
+        for (VirtualHost virtual : hosts) {
+            this.writers.put(virtual.domain(), createWriter(virtual));
+        }
+    }
+
+    private PrintWriter createWriter(VirtualHost virtual) {
+        final String out = virtual.log();
+        PrintWriter writer = null;
+        switch(out) {
+        case "stdout":
+            writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(System.out)));
+            LOGGER.info(String.format("[WEB] Virtual '%s' access log output console '%s'.", virtual.domain(), out));
+            break;
+        case "stderr":
+            writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(System.err)));
+            LOGGER.info(String.format("[WEB] Virtual '%s' access log output console '%s'.", virtual.domain(), out));
+            break;
+        default:
+            File file = null;
+            if (out.indexOf("/") == -1) {
+                file = new File(virtual.home(), out);
+            } else {
+                file = new File(out);
+            }
+            try {
+                writer = new PrintWriter(new BufferedWriter(new FileWriter(file)));
+                LOGGER.info(String.format("[WEB] Virtual '%s' access log file '%s'.", virtual.domain(), file.getAbsolutePath()));
+            } catch (IOException ex) {
+                writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(System.out)));
+                LOGGER.severe(String.format("[WEB] Cant not access log file '%s', output to console.", file.getAbsolutePath()));
+            }
+            break;
+        }
+        return writer;
+    }
+
+    void closeAll() {
+        for (PrintWriter writer : writers.values()) {
+            writer.close();
+        }
+        writers.clear();
     }
 
     @Override
     protected void finalize() throws Throwable {
-        if(null != writer) {
-            writer.close();
-        }
+        closeAll();
     }
 }

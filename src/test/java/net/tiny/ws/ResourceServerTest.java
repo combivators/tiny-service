@@ -28,7 +28,7 @@ public class ResourceServerTest {
             .readConfiguration(Thread.currentThread().getContextClassLoader().getResourceAsStream("logging.properties"));
     }
 
-	static String BROWSER_AGENT = "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)";
+    static String BROWSER_AGENT = "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)";
     static int port;
     static EmbeddedServer server;
 
@@ -121,7 +121,7 @@ public class ResourceServerTest {
             if(callback.success()) {
                 assertEquals(client.getStatus(), HttpURLConnection.HTTP_OK);
                 assertEquals("text/css; charset=utf-8", client.getHeader("Content-Type"));
-                assertEquals(420, client.getContents().length);
+                assertEquals(21, client.getContents().length);
             } else {
                 Throwable err = callback.cause();
                 fail(err.getMessage());
@@ -153,7 +153,7 @@ public class ResourceServerTest {
                 assertEquals(HttpURLConnection.HTTP_OK, client.getStatus());
                 assertEquals("text/css; charset=utf-8", client.getHeader("Content-Type"));
                 assertTrue(!client.getHeader("Last-modified").isEmpty());
-                assertEquals(420, client.getContents().length);
+                assertEquals(21, client.getContents().length);
             } else {
                 Throwable err = callback.cause();
                 fail(err.getMessage());

@@ -1,0 +1,175 @@
+logging:
+  handler:
+    output: none
+    level: FINE
+  level:
+    all: ALL
+    jdk:           WARNING
+    java:          WARNING
+    javax.xml:     WARNING
+    com.sun:       WARNING
+    sun.net:       WARNING
+    sun.util:      WARNING
+    org.apache:    OFF
+    org.jboss:     WARNING
+    org.hibernate: WARNING
+    org.eclipse:   WARNING
+    net.tiny:      INFO
+#
+main:
+  - ${launcher.http}
+  - ${launcher.https}
+  - ${launcher.one8081}
+  - ${launcher.two8082}
+#shutdown = ${hook}
+daemon: true
+executor: ${pool}
+callback: ${service.context}
+pool:
+  class:   net.tiny.service.PausableThreadPoolExecutor
+  size:    10
+  max:     30
+  timeout: 3
+#
+launcher:
+  http:
+    class: net.tiny.ws.Launcher
+    builder:
+      port: 8080
+#     bind: 192.168.1.1
+      backlog: 5
+      stopTimeout: 1
+      executor: ${pool}
+      handlers:
+        - ${handler.sys}
+        - ${handler.home}
+  https:
+    class: net.tiny.ws.Launcher
+    builder:
+      port: 8443
+      backlog: 5
+      stopTimeout: 1
+      executor: ${pool}
+      handlers:
+        - ${handler.health}
+      ssl:
+        file:       src/test/resources/ssl/server.jks
+        password:   changeit
+        clientAuth: false
+  one8081:
+    class: net.tiny.ws.Launcher
+    builder:
+      port: 8081
+      backlog: 5
+      stopTimeout: 1
+      executor: ${pool}
+      handlers: ${handler.virtual}
+  two8082:
+    class: net.tiny.ws.Launcher
+    builder:
+      port: 8082
+      backlog: 5
+      stopTimeout: 1
+      executor: ${pool}
+      handlers: ${handler.virtual}
+handler:
+  sys:
+    class:   net.tiny.ws.ControllableHandler
+    path:    /sys
+    auth:    ${auth.simple}
+    filters:
+      - ${filter.logger}
+      - ${filter.snap}
+# https://localhost:8443/health
+  health:
+    class:   net.tiny.ws.VoidHttpHandler
+    
+    path:    /health
+    filters: ${filter.logger}
+# http://localhost:8080/home/index.html
+  home:
+    class:    net.tiny.ws.ResourceHttpHandler
+    verbose:  true
+    cacheSize: 10
+#    maxAge:   0
+    internal:  false
+    path:      /home
+    paths:     home:src/test/resources/home
+    filters:
+      - ${filter.logger}
+      - ${filter.cors}
+      - ${filter.snap}
+  virtual:
+    class:     net.tiny.ws.VirtualHostHandler
+    verbose:   true
+    cacheSize: 100
+    path:      /
+    filters:   ${filter.virtual}
+    hosts:
+      - ${host.virtual.one}
+      - ${host.virtual.two}
+      - ${host.virtual.three1}
+      - ${host.virtual.three2}
+#
+host:
+  virtual:
+    one:
+      domain: one.localdomain
+      home:   src/test/resources/virtual/one
+      log:    .access.log
+    two:
+      domain: two.localdomain
+      home:   src/test/resources/virtual/two
+      log:    .access.log
+    three1:
+      domain: three.localdomain:8081
+      home:   src/test/resources/virtual/three-8081
+      log:    stdout
+    three2:
+      domain: three.localdomain:8082
+      home:   src/test/resources/virtual/three-8082
+      log:    stderr
+#
+filter:
+   logger:
+     class: net.tiny.ws.AccessLogger
+     out:   stdout
+   virtual:
+     class: net.tiny.ws.VirtualLogger
+     hosts:
+       - ${host.virtual.one}
+       - ${host.virtual.two}
+       - ${host.virtual.three1}
+       - ${host.virtual.three2}
+   cors:
+     class: net.tiny.ws.CorsResponseFilter
+   snap:
+     class: net.tiny.ws.SnapFilter
+#
+auth:
+  simple:
+    class:    net.tiny.ws.auth.SimpleAuthenticator
+    token:    DES:CAhQn4bV:HIOsSQIg
+    encode:   true
+    username: paas
+# 'password'
+    password: Piz5wX49L4MS4SYsGwEMNw==
+#
+service:
+  context:
+    class: net.tiny.service.ServiceLocator
+  monitor:
+    class: net.tiny.service.ServiceContext$Monitor
+#
+content:
+  cache:
+    class: net.tiny.ws.cache.CacheFunction
+    size: 10
+#
+vcap:
+  alias: vcap.services.ups-tiny.credentials
+#datasource:
+#  global:
+#    username: ${${vcap.alias}.cf.username}
+#    password: ${${vcap.alias}.cf.password}
+#
