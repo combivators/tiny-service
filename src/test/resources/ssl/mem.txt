@@ -12,9 +12,20 @@ mvn exec:java -Dexec.mainClass="net.tiny.boot.Main" -Dexec.args="-v -p ssl" -Dex
 curl --remote-name --time-cond cacert.pem https://curl.haxx.se/ca/cacert.pem
 
 curl -u paas:password -v --cacert src/test/resources/ssl/server.pem https://localhost:8443/sys/stop
+curl -u paas:password -v http://localhost:8080/sys/stop
+
 curl -v --cacert src/test/resources/ssl/server.pem https://localhost:8443/health
 curl -v --insecure https://localhost:8443/health
 curl -v http://localhost:8080/health
 
+curl --cacert src/test/resources/ssl/server.pem https://localhost:8443/index.html
+
+
 openssl s_client -connect localhost:8443 < /dev/null 2> /dev/null | openssl x509 -text
 openssl s_client -connect concourse.corp.yahoo.co.jp:443 < /dev/null 2> /dev/null | openssl x509 -text
+
+mvn exec:java -Dexec.mainClass="net.tiny.boot.Main" -Dexec.args="-v -p virtual" -Dexec.classpathScope=java
+curl -v http://one.localdomain:8081/index.html
+curl -v http://two.localdomain:8082/index.html
+curl -v http://three.localdomain:8081/index.html
+curl -v http://three.localdomain:8082/index.html

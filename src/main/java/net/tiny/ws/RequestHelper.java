@@ -121,6 +121,10 @@ public final class RequestHelper {
         return getHeaders().getFirst("Content-type");
     }
 
+    public String getHeader(String name) {
+        return getHeaders().getFirst(name);
+    }
+
     public boolean hasMultipart() {
         return getContentType().startsWith("multipart/form-data");
     }

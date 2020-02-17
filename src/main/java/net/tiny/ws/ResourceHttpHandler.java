@@ -13,7 +13,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 
 import com.sun.net.httpserver.HttpExchange;
 
@@ -34,7 +33,7 @@ public class ResourceHttpHandler extends BaseWebService {
     private String serverName = DEFALUT_SERVER_NAME;
     private ClassLoader loader = ResourceHttpHandler.class.getClassLoader();
     private boolean internal = false;
-
+    private boolean verbose = false;
 
     public WebServiceHandler setPaths(List<String> paths) {
         this.paths = paths;
@@ -60,13 +59,14 @@ public class ResourceHttpHandler extends BaseWebService {
             sendResource(he, res);
         } else {
             final File doc = findLocalFile(uri);
-            sendLocalFile(he, doc);
+            final RequestHelper request = HttpHandlerHelper.getRequestHelper(he);
+            final boolean unmodify = request.isNotModified(doc);
+            sendLocalFile(he, doc, unmodify);
         }
      }
 
-    private void sendLocalFile(HttpExchange he, File doc) throws IOException {
+    private void sendLocalFile(HttpExchange he, File doc, boolean unmodify) throws IOException {
         byte[] buffer;
-        final RequestHelper request = HttpHandlerHelper.getRequestHelper(he);
         final ResponseHeaderHelper header = HttpHandlerHelper.getHeaderHelper(he);
         int statCode = HttpURLConnection.HTTP_OK;
         if (doc == null || !doc.exists() || !doc.isFile()) {
@@ -75,7 +75,7 @@ public class ResourceHttpHandler extends BaseWebService {
             statCode = HttpURLConnection.HTTP_NOT_FOUND;
         } else {
             try {
-                if (request.isNotModified(doc)) {
+                if (unmodify) {
                     buffer = new byte[0];
                     header.set("Server", serverName);
                     header.set("Connection", "Keep-Alive");
@@ -175,24 +175,27 @@ public class ResourceHttpHandler extends BaseWebService {
             String res = mapping.get(uri.substring(1, pos));
             if (res == null) {
                 if(path == null) {
+                    if (verbose) {
+                        LOGGER.warning(String.format("[WEB] Lookup:'%s', path is null.", real));
+                    }
                     return null;
                 }
                 //Not found in mapping resources
                 real = Paths.get(path + uri);
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.fine(String.format("[WEB] Try to find '%s' > '%s'", (path + uri), real));
+                if (verbose) {
+                    LOGGER.info(String.format("[WEB] Try to find '%s' > '%s'", (path + uri), real));
                 }
             } else {
                 real = Paths.get(res + uri.substring(uri.indexOf("/", 1)));
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.fine(String.format("[WEB] Mapping resources : '%s'", real));
+                if (verbose) {
+                    LOGGER.info(String.format("[WEB] Mapping resources : '%s'", real));
                 }
             }
         } else {
             // the resource on home
             real = Paths.get(path + uri);
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.fine(String.format("[WEB] Resource on home : '%s'", real));
+            if (verbose) {
+                LOGGER.info(String.format("[WEB] Resource on home : '%s'", real));
             }
         }
         if (real != null &&
@@ -210,26 +213,42 @@ public class ResourceHttpHandler extends BaseWebService {
         String path = mapping.get("/");
         if (pos == -1 && path == null) {
             // Not found "/" mapping
+            if (verbose) {
+                LOGGER.warning("[WEB] Not found \"/\" mapping");
+            }
             return null;
         }
         String real = null;
         if(pos > 0) {
-            String res = mapping.get(uri.substring(1, pos));
+            real = uri.substring(1, pos);
+            String res = mapping.get(real);
             if (res == null) {
                 if(path == null) {
+                    if (verbose) {
+                        LOGGER.warning(String.format("[WEB] lookup:'%s', path is null.", real));
+                    }
                     return null;
                 }
                 //Not found in mapping resources
                 real = path + uri;
+                if (verbose) {
+                    LOGGER.info(String.format("[WEB] Not found in mapping resources. Local:'%s'", real));
+                }
             } else {
                 real = res + uri.substring(uri.indexOf("/", 1));
             }
         } else {
             // the resource on home
             real = path + uri;
+            if (verbose) {
+                LOGGER.info(String.format("[WEB] Found '%s' on home", real));
+            }
         }
         if (real != null && real.endsWith("/")) {
             real = real.concat("index.html");
+        }
+        if (verbose) {
+            LOGGER.info(String.format("[WEB] Load local '%s'", real));
         }
         return real != null ? loader.getResource(real) : null;
     }
@@ -241,6 +260,9 @@ public class ResourceHttpHandler extends BaseWebService {
                 String[] array = res.split(":");
                 if (array.length > 1) {
                     resources.put(array[0], array[1]);
+                    if (verbose) {
+                        LOGGER.info(String.format("[HTTP(s)] static mapping : '%s'='%s'", array[0], array[1]));
+                    }
                 }
             }
         }

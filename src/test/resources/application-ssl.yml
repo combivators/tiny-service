@@ -4,6 +4,7 @@ logging:
     level: FINE
   level:
     all: ALL
+    jdk:           WARNING
     java:          WARNING
     javax.xml:     WARNING
     com.sun:       WARNING
@@ -15,7 +16,9 @@ logging:
     org.eclipse:   WARNING
     net.tiny:      INFO
 #
-main: ${launcher.http}, ${launcher.https}
+main:
+  - ${launcher.http}
+  - ${launcher.https}
 #shutdown = ${hook}
 daemon: true
 executor: ${pool}
@@ -27,6 +30,19 @@ pool:
   timeout: 3
 #
 launcher:
+  https:
+    class: net.tiny.ws.Launcher
+    builder:
+      port: 8443
+      backlog: 5
+      stopTimeout: 1
+      executor: ${pool}
+      handlers:
+        - ${handler.home}
+      ssl:
+        file:       src/test/resources/ssl/server.jks
+        password:   changeit
+        clientAuth: false
   http:
     class: net.tiny.ws.Launcher
     builder:
@@ -35,34 +51,42 @@ launcher:
       backlog: 5
       stopTimeout: 1
       executor: ${pool}
-      handlers: ${handler.health}
-  https:
-    class: net.tiny.ws.Launcher
-    builder:
-      port: 8443
-      backlog: 5
-      stopTimeout: 1
-      executor: ${pool}
-      handlers: ${handler.sys}, ${handler.health}
-      ssl:
-        file:       src/test/resources/ssl/server.jks
-        password:   changeit
-        clientAuth: false
+      handlers:
+        - ${handler.sys}
+        - ${handler.health}
 handler:
   sys:
     class:   net.tiny.ws.ControllableHandler
     path:    /sys
     auth:    ${auth.simple}
-    filters: ${filter.logger}
+    filters:
+      - ${filter.logger}
+      - ${filter.snap}
   health:
     class:   net.tiny.ws.VoidHttpHandler
     path:    /health
-    filters: ${filter.logger}
+    filters:
+      - ${filter.logger}
+  home:
+    class:    net.tiny.ws.ResourceHttpHandler
+    cacheSize: 10
+#    maxAge:   0
+    internal: false
+    path:     /home
+    paths:    /home:src/test/resources/home
+    filters:
+      - ${filter.logger}
+      - ${filter.cors}
+      - ${filter.snap}
 #
 filter:
    logger:
      class: net.tiny.ws.AccessLogger
      out:   stdout
+   cors:
+     class: net.tiny.ws.CorsResponseFilter
+   snap:
+     class: net.tiny.ws.SnapFilter
 #
 auth:
   simple:
