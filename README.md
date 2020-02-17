@@ -1,10 +1,10 @@
 ## Tiny Service: 一个基于Web系统精简的微服框架
 ## 设计目的
- - 内置HTTP服务器引擎是com.sun.net.httpserver.HttpsServer。
+ - 内置HTTP服务器引擎:com.sun.net.httpserver.HttpsServer。
  - 提供极简的HTTP(S)的MicroService模式。
- - 支持Endpoint编程。
  - 使用Tiny boot包进行服务器配置。
- - 内置标准Web服务器以及控制接口(API)。
+ - 内置标准静态Web服务器以及控制接口(API)。
+ - 内置虚拟Web服务器。
  - 支持文件系统快速缓存(Lur Cache)。
  - 提供精简的HTTP客户端Java类。
  - 提供微服之间处理异步消息流的框架。
@@ -14,50 +14,219 @@
 
 ###1. Simple Run
 ```java
-java net.tiny.boot.Main --verbose
+java net.tiny.boot.Main --verbose --profile local
 ```
 
 
 ###2. Application configuration file with profile
-```properties
-Configuration file : application-{profile}.[yml, json, conf, properties]
+ - Configuration file : application-{profile}.[yml, json, conf, properties]
 
-main = ${launcher}
-daemon = true
-executor = ${pool}
-callback = ${services}
-pool.class = net.tiny.service.PausableThreadPoolExecutor
-pool.size = 2
-pool.max = 10
-pool.timeout = 1
-launcher.class = net.tiny.ws.Launcher
-launcher.builder.bind = 192.168.1.1
-launcher.builder.port = 80
-launcher.builder.backlog = 10
-launcher.builder.stopTimeout = 1
-launcher.builder.executor = ${pool}
-launcher.builder.handlers = ${resource}, ${health}, ${sample}
-services.class = net.tiny.service.ServiceLocator
-resource.class = net.tiny.ws.ResourceHttpHandler
-resource.path = /
-resource.filters = ${logger}
-resource.paths = img:/home/img, js:/home/js, css:/home/css, icon:/home/icon
-health.class = net.tiny.ws.VoidHttpHandler
-health.path = /health
-health.filters = ${logger}
-sample.class = your.SimpleJsonHandler
-sample.path = /json
-sample.filters =  ${logger}, ${snap}, ${params}
-logger.class = net.tiny.ws.AccessLogger
-logger.format = COMBINED
-logger.file = /var/log/http-access.log
-params.class = net.tiny.ws.ParameterFilter
-snap.class = net.tiny.ws.SnapFilter
+```txt
+logging:
+  handler:
+    output: none
+    level: FINE
+  level:
+    all:      ALL
+    jdk:      WARNING
+    java:     WARNING
+    javax:    WARNING
+    com.sun:  WARNING
+    sun.net:  WARNING
+    sun.util: WARNING
+    net.tiny: INFO
+main:
+  - ${launcher.http}
+  - ${launcher.https}
+  - ${launcher.one8081}
+  - ${launcher.two8082}
+daemon: true
+executor: ${pool}
+callback: ${service.context}
+pool:
+  class:   net.tiny.service.PausableThreadPoolExecutor
+  size:    10
+  max:     30
+  timeout: 3
+launcher:
+  http:
+    class: net.tiny.ws.Launcher
+    builder:
+      port: 8080
+      backlog: 5
+      stopTimeout: 1
+      executor: ${pool}
+      handlers:
+        - ${handler.sys}
+        - ${handler.home}
+  https:
+    class: net.tiny.ws.Launcher
+    builder:
+      port: 8443
+      backlog: 5
+      stopTimeout: 1
+      executor: ${pool}
+      handlers:
+        - ${handler.health}
+      ssl:
+        file:       src/test/resources/ssl/server.jks
+        password:   changeit
+        clientAuth: false
+  one8081:
+    class: net.tiny.ws.Launcher
+    builder:
+      port: 8081
+      backlog: 5
+      stopTimeout: 1
+      executor: ${pool}
+      handlers: ${handler.virtual}
+  two8082:
+    class: net.tiny.ws.Launcher
+    builder:
+      port: 8082
+      backlog: 5
+      stopTimeout: 1
+      executor: ${pool}
+      handlers: ${handler.virtual}
+handler:
+  sys:
+    class:   net.tiny.ws.ControllableHandler
+    path:    /sys
+    auth:    ${auth.simple}
+    filters:
+      - ${filter.logger}
+      - ${filter.snap}
+  health:
+    class:   net.tiny.ws.VoidHttpHandler
+    path:    /health
+    filters: ${filter.logger}
+  home:
+    class:    net.tiny.ws.ResourceHttpHandler
+    verbose:  true
+    cacheSize: 100
+    internal:  false
+    path:      /home
+    paths:     home:src/test/resources/home
+    filters:
+      - ${filter.logger}
+      - ${filter.cors}
+      - ${filter.snap}
+  virtual:
+    class:     net.tiny.ws.VirtualHostHandler
+    verbose:   true
+    cacheSize: 100
+    path:      /
+    filters:   ${filter.virtual}
+    hosts:
+      - ${host.virtual.one}
+      - ${host.virtual.two}
+      - ${host.virtual.three1}
+      - ${host.virtual.three2}
+host:
+  virtual:
+    one:
+      domain: one.localdomain
+      home:   src/test/resources/virtual/one
+      log:    .access.log
+    two:
+      domain: two.localdomain
+      home:   src/test/resources/virtual/two
+      log:    .access.log
+    three1:
+      domain: three.localdomain:8081
+      home:   src/test/resources/virtual/three-8081
+      log:    stdout
+    three2:
+      domain: three.localdomain:8082
+      home:   src/test/resources/virtual/three-8082
+      log:    stderr
+filter:
+   logger:
+     class: net.tiny.ws.AccessLogger
+     out:   stdout
+   virtual:
+     class: net.tiny.ws.VirtualLogger
+     hosts:
+       - ${host.virtual.one}
+       - ${host.virtual.two}
+       - ${host.virtual.three1}
+       - ${host.virtual.three2}
+   cors:
+     class: net.tiny.ws.CorsResponseFilter
+   snap:
+     class: net.tiny.ws.SnapFilter
+auth:
+  simple:
+    class:    net.tiny.ws.auth.SimpleAuthenticator
+    token:    DES:CAhQn4bV:HIOsSQIg
+    encode:   true
+    username: user
+    password: Piz5wX49L4MS4SYsGwEMNw==
+service:
+  context:
+    class: net.tiny.service.ServiceLocator
+  monitor:
+    class: net.tiny.service.ServiceContext$Monitor
+content:
+  cache:
+    class: net.tiny.ws.cache.CacheFunction
+    size: 10
+vcap:
+  alias: vcap.services.ups-tiny.credentials
 ```
 
+###3. The first simple application none tiny packages dependency
 
-###3. Sample MicroService java
- - Sample1
+```java
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.sun.net.httpserver.Authenticator;
+import com.sun.net.httpserver.Filter;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+
+public class HelloHandler implements HttpHandler {
+
+    protected String path;
+    protected List<Filter> filters = new ArrayList<>(); //Option
+    protected Authenticator auth = null;  //Option
+
+    @Override
+    public void handle(HttpExchange he) throws IOException {
+        final String method = he.getRequestMethod();
+        final String name = getURIParameters(he, 0);
+        final String responseBody = String.format("{\"method\":\"%s\", \"msg\":\"Hello %s\"}", method, name);
+        final byte[] rawResponseBody = responseBody.getBytes(StandardCharsets.UTF_8);
+        he.getResponseHeaders().add("Content-type", "application/json; charset=utf-8");
+        he.sendResponseHeaders(HttpURLConnection.HTTP_OK, rawResponseBody.length);
+        he.getResponseBody().write(rawResponseBody);
+    }
+
+    private String getURIParameters(final HttpExchange he, final int index) {
+        final String requestPath = he.getHttpContext().getPath();
+        final String uri = he.getRequestURI().toString();
+        // easy case no sub item relative path
+        int i = uri.indexOf(requestPath);
+        if (i >= 0) {
+            String uriParameters = (uri.length() > requestPath.length()) ?
+                    uri.substring( i + requestPath.length() + 1 ) : uri.substring( i + requestPath.length());
+            // Request path : "foo/fie/bar" --> "foo","fie","bar"
+            try {
+                return uriParameters.split("/")[index];
+            } catch (Exception e) {}
+        }
+        return "";
+
+    }
+
+}
+```
+
+###4. Sample MicroService java
 
 ```java
 import net.tiny.ws.BaseWebService;
@@ -77,7 +246,6 @@ public class SimpleJsonHandler extends BaseWebService {
         final Map<String, List<String>> requestParameters = request.getParameters();
         // do something with the request parameters
         final String responseBody = "['hello world!']";
-
         final ResponseHeaderHelper header = HttpHandlerHelper.getHeaderHelper(he);
         header.setContentType(MIME_TYPE.JSON);
         he.sendResponseHeaders(HttpURLConnection.HTTP_OK, responseBody.length);
@@ -86,7 +254,7 @@ public class SimpleJsonHandler extends BaseWebService {
 }
 ```
 
- - Sample2
+###5. Sample Endpoint java
 
 ```java
 @WebService(name = "NS", targetNamespace = "http://ws.tiny.net/")
@@ -94,13 +262,10 @@ public class SimpleJsonHandler extends BaseWebService {
 public interface CalculatorService {
     @WebMethod
     int sum(int a, int b);
-
     @WebMethod
     int diff(int a, int b);
-
     @WebMethod
     int multiply(int a, int b);
-
     @WebMethod
     int divide(int a, int b);
 }
@@ -181,6 +346,7 @@ bus.register(task, "channel1", value -> task.exec(value));
 //send a message
 bus.publish("channel1", "Hello One");
 
+//remove registered channel
 bus.remove("channel1", task);
 bus.clear("channel1");
 Bus.destroy(String.class);
@@ -206,13 +372,15 @@ Bus.destroy(String.class);
 ```java
 Map<String, Object> payload = new HashMap<String, Object>();
 payload.put("uid", "123");
-
-TokenGenerator tokenGenerator = new TokenGenerator.Builder("<YOUR_SECRET_KEY>")
-                .expires(new Date())
+JsonWebToken jwt = new JsonWebToken.Builder()
+                .signer("HS256", "OPeJAbqF07a")
                 .notBefore(new Date())
-                .admin(true)
-                .build();
-String token = tokenGenerator.createToken(payload);
+                .subject("oauth")
+                .issuer("net.tiny")
+                .audience("user@net.tiny")
+                .jti(true)
+                .build(payload);
+String token = jwt.token();
 ```
 
 
