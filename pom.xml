@@ -69,31 +69,6 @@
     </contributor>
   </contributors>
 
-  <repositories>
-      <repository>
-          <snapshots>
-              <enabled>true</enabled>
-              <updatePolicy>always</updatePolicy>
-          </snapshots>
-          <id>local-snapshots</id>
-          <name>local-snapshot</name>
-          <url>http://edge.artifactory.corp.yahoo.co.jp:8000/artifactory/apj-maven-local-snapshot</url>
-      </repository>
-      <repository>
-          <snapshots>
-              <enabled>false</enabled>
-          </snapshots>
-          <id>release</id>
-          <name>local-release</name>
-          <url>http://edge.artifactory.corp.yahoo.co.jp:8000/artifactory/apj-maven-local-release</url>
-      </repository>
-      <repository>
-          <id>apj-artifactory-ext-release</id>
-          <name>apj-maven-ext-release</name>
-          <url>http://edge.artifactory.corp.yahoo.co.jp:8000/artifactory/apj-maven-ext-release/</url>
-      </repository>
-  </repositories>
-
   <profiles>
     <!-- Development -->
     <profile>
