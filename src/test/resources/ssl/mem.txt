@@ -22,7 +22,6 @@ curl --cacert src/test/resources/ssl/server.pem https://localhost:8443/index.htm
 
 
 openssl s_client -connect localhost:8443 < /dev/null 2> /dev/null | openssl x509 -text
-openssl s_client -connect concourse.corp.yahoo.co.jp:443 < /dev/null 2> /dev/null | openssl x509 -text
 
 mvn exec:java -Dexec.mainClass="net.tiny.boot.Main" -Dexec.args="-v -p virtual" -Dexec.classpathScope=java
 curl -v http://one.localdomain:8081/index.html
