@@ -18,9 +18,6 @@ logging:
 #
 main:
   - ${launcher.http}
-  - ${launcher.https}
-  - ${launcher.one8081}
-  - ${launcher.two8082}
 #shutdown = ${hook}
 daemon: true
 executor: ${pool}
@@ -36,42 +33,14 @@ launcher:
     class: net.tiny.ws.Launcher
     builder:
       port: 8080
-#     bind: 192.168.1.1
       backlog: 5
       stopTimeout: 1
       executor: ${pool}
       handlers:
         - ${handler.sys}
-        - ${handler.home}
-  https:
-    class: net.tiny.ws.Launcher
-    builder:
-      port: 8443
-      backlog: 5
-      stopTimeout: 1
-      executor: ${pool}
-      handlers:
         - ${handler.health}
-      ssl:
-        file:       src/test/resources/ssl/server.jks
-        password:   changeit
-        clientAuth: false
-  one8081:
-    class: net.tiny.ws.Launcher
-    builder:
-      port: 8081
-      backlog: 5
-      stopTimeout: 1
-      executor: ${pool}
-      handlers: ${handler.virtual}
-  two8082:
-    class: net.tiny.ws.Launcher
-    builder:
-      port: 8082
-      backlog: 5
-      stopTimeout: 1
-      executor: ${pool}
-      handlers: ${handler.virtual}
+        - ${handler.home}
+        - ${handler.virtual}
 handler:
   sys:
     class:   net.tiny.ws.ControllableHandler
@@ -79,26 +48,24 @@ handler:
     auth:    ${auth.simple}
     filters:
       - ${filter.logger}
-      - ${filter.snap}
-# https://localhost:8443/health
+# https://localhost/health
   health:
     class:   net.tiny.ws.VoidHttpHandler
-    
     path:    /health
     filters: ${filter.logger}
-# http://localhost:8080/home/index.html
+# http://localhost/home/index.html
   home:
-    class:    net.tiny.ws.ResourceHttpHandler
-    verbose:  true
+    class:     net.tiny.ws.ResourceHttpHandler
+    auth:      ${auth.simple}
+    verbose:   true
     cacheSize: 10
 #    maxAge:   0
     internal:  false
     path:      /home
-    paths:     home:src/test/resources/home
+    paths:     home:home
     filters:
       - ${filter.logger}
       - ${filter.cors}
-      - ${filter.snap}
   virtual:
     class:     net.tiny.ws.VirtualHostHandler
     verbose:   true
@@ -108,27 +75,17 @@ handler:
     hosts:
       - ${host.virtual.one}
       - ${host.virtual.two}
-      - ${host.virtual.three1}
-      - ${host.virtual.three2}
 #
 host:
   virtual:
     one:
-      domain: one.localdomain
-      home:   src/test/resources/virtual/one
-      log:    .access.log
-    two:
-      domain: two.localdomain
-      home:   src/test/resources/virtual/two
-      log:    .access.log
-    three1:
-      domain: three.localdomain:8081
-      home:   src/test/resources/virtual/three-8081
+      domain: tiny-1.${cloud.domain}
+      home:   virtual/one
       log:    stdout
-    three2:
-      domain: three.localdomain:8082
-      home:   src/test/resources/virtual/three-8082
-      log:    stderr
+    two:
+      domain: tiny-2.${cloud.domain}
+      home:   virtual/two
+      log:    stdout
 #
 filter:
    logger:
@@ -139,21 +96,16 @@ filter:
      hosts:
        - ${host.virtual.one}
        - ${host.virtual.two}
-       - ${host.virtual.three1}
-       - ${host.virtual.three2}
    cors:
      class: net.tiny.ws.CorsResponseFilter
-   snap:
-     class: net.tiny.ws.SnapFilter
 #
 auth:
   simple:
     class:    net.tiny.ws.auth.SimpleAuthenticator
-    token:    DES:CAhQn4bV:HIOsSQIg
+    token:    ${${vcap.ups}.cf.token}
     encode:   true
-    username: paas
-# 'password'
-    password: Piz5wX49L4MS4SYsGwEMNw==
+    username: ${${vcap.ups}.cf.username}
+    password: ${${vcap.ups}.cf.password}
 #
 service:
   context:
@@ -167,9 +119,14 @@ content:
     size: 10
 #
 vcap:
-  alias: vcap.services.ups-tiny.credentials
+  ups: vcap.services.ups-tiny.credentials
+  db:  vcap.services.mysql-db.credentials
 #datasource:
 #  global:
-#    username: ${${vcap.alias}.cf.username}
-#    password: ${${vcap.alias}.cf.password}
-#
+#    username: ${${vcap.db}.username}
+#    password: ${${vcap.db}.password}
+#    host:     ${${vcap.db}.host}
+#    port:     ${${vcap.db}.port}
+#    uri:      ${${vcap.db}.uri}
+cloud:
+  domain: cloud.domain

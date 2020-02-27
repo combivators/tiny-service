@@ -139,6 +139,7 @@ public final class RequestHelper {
     }
 
     public boolean isNotModified(File file) {
+        if (null == file) return false;
         return isNotModified(file.lastModified());
     }
 

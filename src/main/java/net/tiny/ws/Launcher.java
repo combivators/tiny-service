@@ -3,7 +3,10 @@ package net.tiny.ws;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class Launcher implements Runnable, AutoCloseable {
+import net.tiny.service.Statable;
+import net.tiny.service.Trigger;
+
+public class Launcher extends Trigger implements Runnable, AutoCloseable {
 
     private static final Logger LOGGER = Logger.getLogger(Launcher.class.getName());
 
@@ -14,6 +17,7 @@ public class Launcher implements Runnable, AutoCloseable {
         if (builder == null) {
             builder = new EmbeddedServer.Builder();
         }
+        states(Statable.States.NONE);
         return builder;
     }
 
@@ -24,10 +28,21 @@ public class Launcher implements Runnable, AutoCloseable {
             return;
         }
 
+        states(Statable.States.READY);
+        try {
+            await();
+            startup();
+        } catch (InterruptedException e) {
+            states(Statable.States.FAILED);
+        }
+    }
+
+    void startup() {
         server = builder.build();
         server.listen(callback -> {
             if(callback.success()) {
                 LOGGER.info(String.format("[BOOT] Server'%s' launcher successful start.", builder.toString()));
+                states(Statable.States.ALIVE);
                 try {
                     server.awaitTermination();
                 } catch (InterruptedException e) {
@@ -37,10 +52,10 @@ public class Launcher implements Runnable, AutoCloseable {
                 Throwable err = callback.cause();
                 LOGGER.log(Level.SEVERE,
                         String.format("[BOOT] Server'%s' launcher startup failed - '%s'", builder.toString(), err.getMessage()), err);
+                states(Statable.States.FAILED);
             }
         });
     }
-
     public boolean isStarting() {
         return server != null && server.isStarted();
     }
@@ -48,6 +63,7 @@ public class Launcher implements Runnable, AutoCloseable {
     public void stop() {
         if (isStarting()) {
             server.stop();
+            states(Statable.States.DONE);
             server = null;
         }
     }

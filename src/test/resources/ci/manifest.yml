@@ -1,0 +1,19 @@
+---
+applications:
+- name: tiny
+  buildpacks:
+  - binary_buildpack
+  stack: cflinuxfs3
+  memory: 1G
+  instances: 1
+  routes:
+  - route: tiny.paas.domain
+  - route: tiny-1.paas.domain
+  - route: tiny-2.paas.domain
+  command: './java/bin/java -Duser.timezone=JST -XX:+UseConcMarkSweepGC -cp lib/tiny-boot-1.0.0.jar:lib/tiny-service-1.0.0.jar:lib/tiny-rest-1.0.0.jar:lib/tiny-naming-1.0.0.jar:lib/javax.ws.rs-api-2.1.1.jar:lib/javax.annotation-api-1.3.2.jar:lib/mysql-connector-java-8.0.19.jar net.tiny.boot.Main'
+  env:
+    profile: cloud
+    TZ: Asia/Tokyo
+  services:
+  - ups-tiny
+  - mysql-db

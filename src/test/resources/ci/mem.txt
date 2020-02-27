@@ -1,0 +1,25 @@
+cf login ...
+cf cups cps-tiny -p ci/ups-tiny.json
+cf uups ups-tiny -p ci/ups-tiny.json
+cf cs y-mysql free mysql-db -c '{"dbname" : "mysql"}'
+cf s
+#cf bind-service tiny mysql-db
+cf push -f manifest.yml
+cf push -f manifest-java.yml
+cf logs tiny --recent
+cf app tiny
+cf env tiny
+cf ds mysql-db
+cf ds ups-tiny
+
+
+     状態   開始日時               CPU    メモリー       ディスク       詳細
+#0   実行   2020-02-26T04:35:02Z   0.0%   752.5K of 1G   231.3M of 1G
+     状態   開始日時               CPU    メモリー       ディスク       詳細
+#0   実行   2020-02-26T04:41:31Z   0.7%   255.2M of 1G   161.9M of 1G
+
+curl -u paas:password http://tiny.paas.domain/sys/stop
+curl -v --insecure https://tiny.paas.domain/health
+curl -v -u paas:password http://tiny.paas.domain/home/index.html
+curl -v http://tiny-1.paas.domain/index.html
+curl -v http://tiny-2.paas.domain/index.html
