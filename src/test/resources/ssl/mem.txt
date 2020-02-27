@@ -23,8 +23,11 @@ curl --cacert src/test/resources/ssl/server.pem https://localhost:8443/index.htm
 
 openssl s_client -connect localhost:8443 < /dev/null 2> /dev/null | openssl x509 -text
 
+mvn exec:java -Dcom.sun.management.jmxremote -Dexec.mainClass="net.tiny.boot.Main" -Dexec.args="-p virtual" -Dexec.classpathScope=java
 mvn exec:java -Dexec.mainClass="net.tiny.boot.Main" -Dexec.args="-v -p virtual" -Dexec.classpathScope=java
+curl -u paas:password http://localhost:8080/sys/stop
 curl -v http://one.localdomain:8081/index.html
 curl -v http://two.localdomain:8082/index.html
 curl -v http://three.localdomain:8081/index.html
 curl -v http://three.localdomain:8082/index.html
+

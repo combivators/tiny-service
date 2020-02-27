@@ -65,7 +65,6 @@ handler:
 # https://localhost:8443/health
   health:
     class:   net.tiny.ws.VoidHttpHandler
-    
     path:    /health
     filters: ${filter.logger}
 # http://localhost:8080/home/index.html

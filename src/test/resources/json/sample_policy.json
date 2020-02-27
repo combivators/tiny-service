@@ -1,81 +1,81 @@
 {
   "signedPolicyData": {
     "policyData": {
-      "domain": "yby.t-mkunii.pcpf-box-admin",
+      "domain": "y.x-mkuni.pcf",
       "policies": [
         {
-          "name": "yby.t-mkunii.pcpf-box-admin:policy.access-operator",
+          "name": "y.x-mkuni.pcf:policy.access-operator",
           "modified": "2018-08-22T01:40:33.597Z",
           "assertions": [
             {
-              "role": "yby.t-mkunii.pcpf-box-admin:role.pcpf-operator",
-              "resource": "yby.t-mkunii.pcpf-box-admin:resource.operator",
+              "role": "y.x-mkuni.pcf:role.pcpf-operator",
+              "resource": "y.x-mkuni.pcf:resource.operator",
               "action": "access",
               "effect": "ALLOW"
             },
             {
-              "role": "yby.t-mkunii.pcpf-box-admin:role.pcpf-admin",
-              "resource": "yby.t-mkunii.pcpf-box-admin:resource.operator",
+              "role": "y.x-mkuni.pcf:role.pcpf-admin",
+              "resource": "y.x-mkuni.pcf:resource.operator",
               "action": "access",
               "effect": "ALLOW"
             }
           ]
         },
         {
-          "name": "yby.t-mkunii.pcpf-box-admin:policy.admin",
+          "name": "y.x-mkuni.pcf:policy.admin",
           "modified": "2018-08-15T07:27:16.996Z",
           "assertions": [
             {
-              "role": "yby.t-mkunii.pcpf-box-admin:role.admin",
-              "resource": "yby.t-mkunii.pcpf-box-admin:*",
+              "role": "y.x-mkuni.pcf:role.admin",
+              "resource": "y.x-mkuni.pcf:*",
               "action": "*",
               "effect": "ALLOW"
             }
           ]
         },
         {
-          "name": "yby.t-mkunii.pcpf-box-admin:policy.access-reader",
+          "name": "y.x-mkuni.pcf:policy.access-reader",
           "modified": "2018-08-22T01:38:53.089Z",
           "assertions": [
             {
-              "role": "yby.t-mkunii.pcpf-box-admin:role.pcpf-reader",
-              "resource": "yby.t-mkunii.pcpf-box-admin:resource.reader",
+              "role": "y.x-mkuni.pcf:role.pcpf-reader",
+              "resource": "y.x-mkuni.pcf:resource.reader",
               "action": "access",
               "effect": "ALLOW"
             },
             {
-              "role": "yby.t-mkunii.pcpf-box-admin:role.pcpf-operator",
-              "resource": "yby.t-mkunii.pcpf-box-admin:resource.reader",
+              "role": "y.x-mkuni.pcf:role.pcpf-operator",
+              "resource": "y.x-mkuni.pcf:resource.reader",
               "action": "access",
               "effect": "ALLOW"
             },
             {
-              "role": "yby.t-mkunii.pcpf-box-admin:role.pcpf-admin",
-              "resource": "yby.t-mkunii.pcpf-box-admin:resource.reader",
+              "role": "y.x-mkuni.pcf:role.pcpf-admin",
+              "resource": "y.x-mkuni.pcf:resource.reader",
               "action": "access",
               "effect": "ALLOW"
             }
           ]
         },
         {
-          "name": "yby.t-mkunii.pcpf-box-admin:policy.tools",
+          "name": "y.x-mkuni.pcf:policy.tools",
           "modified": "2018-08-15T07:32:28.103Z",
           "assertions": [
             {
-              "role": "yby.t-mkunii.pcpf-box-admin:role.tools",
-              "resource": "yby.t-mkunii.pcpf-box-admin:localhost.yahoo.co.jp",
+              "role": "y.x-mkuni.pcf:role.tools",
+              "resource": "y.x-mkuni.pcf:localhost.localdomain",
               "action": "issue",
               "effect": "ALLOW"
             }
           ]
         },
         {
-          "name": "yby.t-mkunii.pcpf-box-admin:policy.access-admin",
+          "name": "y.x-mkuni.pcf:policy.access-admin",
           "modified": "2018-08-22T01:41:40.784Z",
           "assertions": [
             {
-              "role": "yby.t-mkunii.pcpf-box-admin:role.pcpf-admin",
-              "resource": "yby.t-mkunii.pcpf-box-admin:resource.admin",
+              "role": "y.x-mkuni.pcf:role.pcpf-admin",
+              "resource": "y.x-mkuni.pcf:resource.admin",
               "action": "access",
               "effect": "ALLOW"
             }
