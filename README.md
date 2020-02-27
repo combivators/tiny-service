@@ -10,15 +10,15 @@
  - 提供微服之间处理异步消息流的框架。
  - 提供用于微服认证的JSON Web Token(JWT)生成器。
 
-##Usage
+## Usage
 
-###1. Simple Run
+### 1. Simple Run
 ```java
 java net.tiny.boot.Main --verbose --profile local
 ```
 
 
-###2. Application configuration file with profile
+### 2. Application configuration file with profile
  - Configuration file : application-{profile}.[yml, json, conf, properties]
 
 ```txt
@@ -175,7 +175,7 @@ vcap:
   alias: vcap.services.ups-tiny.credentials
 ```
 
-###3. The first simple application none tiny packages dependency
+### 3. The first simple application none tiny packages dependency
 
 ```java
 import java.io.IOException;
@@ -226,7 +226,7 @@ public class HelloHandler implements HttpHandler {
 }
 ```
 
-###4. Sample MicroService java
+### 4. Sample MicroService java
 
 ```java
 import net.tiny.ws.BaseWebService;
@@ -254,7 +254,7 @@ public class SimpleJsonHandler extends BaseWebService {
 }
 ```
 
-###5. Sample Endpoint java
+### 5. Sample Endpoint java
 
 ```java
 @WebService(name = "NS", targetNamespace = "http://ws.tiny.net/")
@@ -298,7 +298,7 @@ public class CalculatorServer extends AbstractWebService implements CalculatorSe
 ```
 
 
-###4. Sample HTTP client java
+### 6. Sample HTTP client java
 ```java
 import net.tiny.ws.client.SimpleClient;
 
@@ -333,7 +333,7 @@ client.close();
 ```
 
 
-###5. Message Bus Java Sample
+### 7. Message Bus Java Sample
 ```java
 import net.tiny.message.Bus;
 
@@ -352,7 +352,7 @@ bus.clear("channel1");
 Bus.destroy(String.class);
 ```
 
-##微服认证JWT生成器
+## 微服认证JWT生成器
 ## 重要提示
 **注意:** 生成 Token 需要以超级密钥为参数，所以应该仅在可信赖的服务器上生成 Token。另外，决不可把超级密钥存入应用程序中，也不要与客户端分享超级密钥。
 ## 生成JWT方法
@@ -367,7 +367,7 @@ Bus.destroy(String.class);
 
 * **debug(boolean)** - 若为 `true` ，将启动调试输出安全规则信息。通常在生产环境中，应该把它设置为false。
 
-###1. JWT Sample
+### 1. JWT Sample
 
 ```java
 Map<String, Object> payload = new HashMap<String, Object>();
@@ -384,7 +384,7 @@ String token = jwt.token();
 ```
 
 
-##More Detail, See The Samples
+## More Detail, See The Samples
 
 ---
 Email   : wuweibg@gmail.com
